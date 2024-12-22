@@ -391,7 +391,7 @@ function attemptSnapping(activeObj) {
     }
   }
 
-  if (candidates.length === 0) return; // no snap
+  if (candidates.length === 0) return; // no snap for you
 
   // Find the candidate with the smallest distance
   let minDist = Infinity;
