@@ -92,7 +92,7 @@ function onWindowResize() {
 // 2) LOAD BLOCKS + LEFT PANE
 async function loadBlocks() {
   try {
-    const res = await fetch('/blocks.json');
+    const res = await fetch('blocks.json');
     blocksData = await res.json();
     createBlockList(blocksData);
   } catch (err) {
