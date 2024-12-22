@@ -1,0 +1,113 @@
+/* Basic reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Full screen layout */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: sans-serif;
+}
+
+/* The main container that holds left-pane and right-pane */
+#app {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+}
+
+/* Left pane = 25% width */
+.left-pane {
+  width: 25%;
+  background-color: #f0f0f0;
+  padding: 1rem;
+  overflow-y: auto;
+  border-right: 1px solid #ccc;
+}
+
+/* Right pane = 75% width */
+.right-pane {
+  width: 75%;
+  position: relative;
+  background-color: #222;
+  /* Make sure it's recognized as a drop target: */
+  border: 2px dashed transparent;
+  transition: border-color 0.2s;
+}
+
+.right-pane.drop-highlight {
+  border-color: #ffcc00;
+}
+
+
+/* Just a little styling for your "blocks" */
+.block-list {
+  margin-top: 1rem;
+}
+
+.block-item {
+  background-color: #ddd;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  cursor: grab;
+  border: 1px solid #aaa;
+  text-align: center;
+}
+
+/* When you start dragging */
+.block-item:active {
+  cursor: grabbing;
+}
+
+.block-list img {
+  max-width: 200px;
+  max-height: 200px;
+  height: auto;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+  /* center horizontally if you like */
+}
+
+.popup {
+  position: absolute;
+  background-color: #bdf3bd;
+  /* light green */
+  color: #065e06;
+  /* dark green text */
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  top: 60px;
+  /* or wherever you want it to appear */
+  left: 20px;
+  /* adjust as needed */
+  display: none;
+  z-index: 999;
+}
+
+.cost-calculator {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 1rem;
+  border: 2px solid black;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.8);
+  font-family: sans-serif;
+  z-index: 100;
+  /* above other elements */
+}
+
+.save-load-row {
+  display: flex;
+  gap: 8px;
+  /* small spacing between elements */
+  align-items: center;
+  margin-bottom: 1rem;
+  /* spacing below row */
+}
