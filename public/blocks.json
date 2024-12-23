@@ -58,7 +58,7 @@
         "isSnapped": false
       }
     ],
-    "previewImage": "images/block1.png"
+    "previewImage": "block1.png"
   },
   {
     "id": "block2",
@@ -119,7 +119,7 @@
         "isSnapped": false
       }
     ],
-    "previewImage": "images/block2.png"
+    "previewImage": "block2.png"
   },
   {
     "id": "block3",
@@ -180,7 +180,7 @@
         "isSnapped": false
       }
     ],
-    "previewImage": "images/block3.png"
+    "previewImage": "block3.png"
   },
   {
     "id": "block4",
@@ -241,7 +241,7 @@
         "isSnapped": false
       }
     ],
-    "previewImage": "images/block4.png"
+    "previewImage": "block4.png"
   },
   {
     "id": "block5",
@@ -315,6 +315,6 @@
         "isSnapped": false
       }
     ],
-    "previewImage": "images/block5.png"
+    "previewImage": "block5.png"
   }
 ]

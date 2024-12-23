@@ -3,39 +3,37 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>My 3D Block Builder</title>
+  <title>My Block App - Debug Revisions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="./src/style.css" />
 </head>
 
-
-
 <body>
-  <div id="app">
-    <!-- Left side menu -->
-    <div class="left-pane">
-      <h2>Save/Load</h2>
-      <div class="save-load-row">
-        <button id="saveSceneBtn">💾 Save</button>
-        <input id="loadSceneInput" placeholder="Load house:" />
-        <button id="loadSceneBtn">Load</button>
-      </div>
-
-      <h2>Blocks</h2>
-
-      <div id="savePopup" class="popup">House copied to clipboard</div>
-      <p>Drag these into the scene!</p>
-      <div class="block-list">
-      </div>
-    </div>
-
-    <!-- Right side 3D view -->
-    <div class="right-pane"></div>
-    <div class="cost-calculator" id="costCalculator"></div>
+  <!-- Save/Load row -->
+  <div class="save-load-row">
+    <button id="saveSceneBtn">💾</button>
+    <input id="loadSceneInput" placeholder="Load house:" />
+    <button id="loadSceneBtn">Load</button>
   </div>
 
-  <!-- Vite uses ES Modules; just reference main.js -->
-  <script type="module" src="/main.js"></script>
+  <h2>Blocks</h2>
+  <div class="block-list"></div>
+
+  <!-- Right pane with Three.js scene -->
+  <div class="right-pane">
+    <!-- The three.js canvas is appended in scene.js -->
+    <!-- Trashcan box in bottom-left corner -->
+    <div class="trashcan-box" id="trashcanBox">🗑️</div>
+  </div>
+
+  <!-- Cost calculator -->
+  <div id="costCalculator" class="cost-calculator"></div>
+
+  <!-- Popup for saving feedback -->
+  <div id="savePopup" class="popup">House copied to clipboard</div>
+
+  <!-- Main entry script -->
+  <script type="module" src="./src/main.js"></script>
 </body>
 
 </html>
