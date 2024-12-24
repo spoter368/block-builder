@@ -11,7 +11,6 @@ let blocksData = [];
 let placedBlocks = [];
 
 let activeBlock = null;
-let isBlockPlaced = false;
 
 let mouseDownPos = new THREE.Vector2();
 let mouseDownTime = 0;
@@ -146,6 +145,22 @@ rightPane.addEventListener('drop', (e) => {
   createBlockInScene(blockData, e);
 });
 
+function setBlockAndOutlineColors(block, color, outlineColor) {
+  // For each mesh child, apply normal material + edges
+  block.traverse(child => {
+    if (child.isMesh) {
+      // 1) Opaque material
+      child.material = new THREE.MeshStandardMaterial({
+        color: color,
+        side: THREE.DoubleSide,
+      });
+
+      // 2) Add edges geometry for black outline
+      addEdgeOutline(child, outlineColor);
+    }
+  });
+}
+
 // 3) CREATE BLOCK IN SCENE
 function createBlockInScene(blockData, e) {
   // Remove old activeBlock if any
@@ -153,25 +168,12 @@ function createBlockInScene(blockData, e) {
     scene.remove(activeBlock);
     activeBlock = null;
   }
-  isBlockPlaced = false;
 
   const loader = new OBJLoader();
   loader.load(
     blockData.geometryFile,
     (objRoot) => {
-      // For each mesh child, apply normal material + edges
-      objRoot.traverse(child => {
-        if (child.isMesh) {
-          // 1) Opaque material
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            side: THREE.DoubleSide,
-          });
-
-          // 2) Add edges geometry for black outline
-          addEdgeOutline(child, 0x000000);
-        }
-      });
+      setBlockAndOutlineColors(objRoot, 0xcd7837, 0x6f3101);
 
       // Scale from meters->feet
       objRoot.scale.set(3.28084, 3.28084, 3.28084);
@@ -246,7 +248,7 @@ function showAllUnsnappedAttachmentPoints() {
   sceneAttachmentHelpers.clear();
 
   placedBlocks.forEach(b => addAttachmentHelpersForBlock(b, sceneAttachmentHelpers));
-  if (activeBlock && !isBlockPlaced) {
+  if (activeBlock) {
     addAttachmentHelpersForBlock(activeBlock, sceneAttachmentHelpers);
   }
 }
@@ -281,7 +283,7 @@ function addAttachmentHelpersForBlock(blockObj, containerGroup) {
 
 // 4) MOUSE / KEY
 function onMouseMove(event) {
-  if (!activeBlock || isBlockPlaced) return;
+  if (!activeBlock) return;
 
   const intersection = getFloorIntersection(event);
   if (intersection) {
@@ -290,33 +292,69 @@ function onMouseMove(event) {
   showAllUnsnappedAttachmentPoints();
 }
 
+function raycastToCheckForBlock(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+
+  let allMeshes = [];
+  placedBlocks.forEach(obj => {
+    obj.traverse(child => {
+      if (child.isMesh) allMeshes.push(child);
+    });
+  });
+  const hits = raycaster.intersectObjects(allMeshes, true);
+  if (hits.length > 0) return hits[0].object.parent;
+  return null;
+}
+
+let potentialTargetBlock = null;
+
 function onMouseDown(event) {
-  if (activeBlock && !isBlockPlaced) {
-    mouseDownPos.set(event.clientX, event.clientY);
-    mouseDownTime = performance.now();
+  mouseDownPos.set(event.clientX, event.clientY);
+  mouseDownTime = performance.now();
+  if (!activeBlock) {
+    potentialTargetBlock = raycastToCheckForBlock(event)
   }
 }
 
 function onMouseUp(event) {
-  if (!activeBlock || isBlockPlaced) return;
-
   const dist = Math.hypot(event.clientX - mouseDownPos.x, event.clientY - mouseDownPos.y);
   const timeDiff = performance.now() - mouseDownTime;
 
+  // user clicked quickly and did not move mouse
   if (dist < 5 && timeDiff < 1000) {
-    attemptSnapping(activeBlock);
-    isBlockPlaced = true;
-    placedBlocks.push(activeBlock);
+    if (activeBlock) {
+      // user is attempting to place an active block
+      handleSnapping(activeBlock, 'snap');
+      placedBlocks.push(activeBlock);
+      setBlockAndOutlineColors(activeBlock, 0xffffff, 0x000000);
+      updateCostCalculator();
+      showAllUnsnappedAttachmentPoints();
 
-    updateCostCalculator();
-    showAllUnsnappedAttachmentPoints();
+      activeBlock = null;
+    } else {
+      // user might be attempting to pick up a block
+      let tmp = raycastToCheckForBlock(event);
+      // if the block they released their mouse over was the same as the one they placed their mouse down over:
+      if (tmp?.uuid && tmp.uuid === potentialTargetBlock.uuid) {
+        // grab the block, strip it out of the placedBlocks list
+        activeBlock = tmp;
+        placedBlocks = placedBlocks.filter(block => block.uuid != activeBlock.uuid)
+        handleSnapping(activeBlock, 'unsnap')
+        setBlockAndOutlineColors(activeBlock, 0xcd7837, 0x6f3101);
+        updateCostCalculator();
+      }
+    }
 
-    activeBlock = null;
   }
 }
 
 function onKeyDown(event) {
-  if (!activeBlock || isBlockPlaced) return;
+  if (!activeBlock) return;
 
   if (event.key.toLowerCase() === 'r') {
     if (event.shiftKey) {
@@ -354,9 +392,10 @@ function getFloorIntersection(event) {
   return null;
 }
 
-// 6) SNAP LOGIC: If multiple valid pairs, choose closest for offset, mark them all
-function attemptSnapping(activeObj) {
+function handleSnapping(activeObj, mode) {
   const activePoints = activeObj.userData.attachmentPoints || [];
+
+  // Convert local to world coords for activeObj
   const worldActive = activePoints.map(ap => {
     const wp = ap.position.clone();
     activeObj.localToWorld(wp);
@@ -364,14 +403,14 @@ function attemptSnapping(activeObj) {
     return { position: wp, vector: wv, ref: ap };
   });
 
-  // Gather all candidate pairs
   const candidates = [];
 
-  // For each placed block
+  // For each placed block in the scene
   for (let i = 0; i < placedBlocks.length; i++) {
     const other = placedBlocks[i];
     if (other === activeObj) continue; // skip self
 
+    // Convert local to world for 'other' block
     const otherPoints = other.userData.attachmentPoints || [];
     const worldOther = otherPoints.map(op => {
       const wp = op.position.clone();
@@ -380,48 +419,70 @@ function attemptSnapping(activeObj) {
       return { position: wp, vector: wv, ref: op };
     });
 
-    for (let a = 0; a < worldActive.length; a++) {
-      const A = worldActive[a];
-      if (A.ref.isSnapped) continue;
+    // Compare each point in activeObj to each point in other block
+    for (let A of worldActive) {
+      // If mode===snap and A is already snapped, skip
+      // If mode===unsnap but A is not snapped, skip
+      if ((mode === 'snap' && A.ref.isSnapped) ||
+        (mode === 'unsnap' && !A.ref.isSnapped)) {
+        continue;
+      }
 
-      for (let b = 0; b < worldOther.length; b++) {
-        const B = worldOther[b];
-        if (B.ref.isSnapped) continue;
+      for (let B of worldOther) {
+        // same skip logic for other block's points
+        if ((mode === 'snap' && B.ref.isSnapped) ||
+          (mode === 'unsnap' && !B.ref.isSnapped)) {
+          continue;
+        }
 
+        // Distance + dot check
         const dist = A.position.distanceTo(B.position);
         if (dist < 0.77) {
           const dot = A.vector.dot(B.vector);
+          // If we are snapping => look for dot <= -0.99
+          // If we are unsnapping => you might only consider pairs that are definitely snapped 
+          // (like dot <= -0.99). Or you can skip the dot check if you want to forcibly unsnap everything.
           if (dot <= -0.99) {
-            // This pair is valid
+            // This pair is a candidate
             const offset = B.position.clone().sub(A.position);
-            candidates.push({ distance: dist, Aref: A.ref, Bref: B.ref, offset });
+            candidates.push({ dist, A, B, offset });
           }
         }
       }
     }
   }
 
-  if (candidates.length === 0) return; // no snap
+  // If no candidates, just return
+  if (candidates.length === 0) return;
 
-  // Find the candidate with the smallest distance
-  let minDist = Infinity;
-  let chosen = null;
+  // If we are snapping, find the closest candidate to actually perform the "move"
+  if (mode === 'snap') {
+    let minDist = Infinity;
+    let chosen = null;
+    for (let c of candidates) {
+      if (c.dist < minDist) {
+        minDist = c.dist;
+        chosen = c;
+      }
+    }
+    // Move the activeObj to align the chosen points
+    activeObj.position.add(chosen.offset);
+  }
+
+  // Mark the pairs as snapped or unsnapped
+  // If snapping => set isSnapped = true on both
+  // If unsnapping => set isSnapped = false
   for (let c of candidates) {
-    if (c.distance < minDist) {
-      minDist = c.distance;
-      chosen = c;
+    if (mode === 'snap') {
+      c.A.ref.isSnapped = true;
+      c.B.ref.isSnapped = true;
+    } else if (mode === 'unsnap') {
+      c.A.ref.isSnapped = false;
+      c.B.ref.isSnapped = false;
     }
   }
-
-  // Move activeObj based on the chosen offset
-  activeObj.position.add(chosen.offset);
-
-  // Mark all valid pairs as snapped
-  for (let c of candidates) {
-    c.Aref.isSnapped = true;
-    c.Bref.isSnapped = true;
-  }
 }
+
 
 // 7) COST CALCULATOR
 function updateCostCalculator() {
