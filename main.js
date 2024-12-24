@@ -11,7 +11,6 @@ let blocksData = [];
 let placedBlocks = [];
 
 let activeBlock = null;
-let activeBlockData = null;
 let isBlockPlaced = false;
 
 let mouseDownPos = new THREE.Vector2();
@@ -32,7 +31,7 @@ function initScene() {
 
   // CAMERA
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(-20, 30, 20);
+  camera.position.set(-30, 30, 30);
   camera.lookAt(0, 0, 0);
 
   // RENDERER
@@ -144,17 +143,16 @@ rightPane.addEventListener('drop', (e) => {
     console.warn('Block not found in blocksData for ID:', blockId);
     return;
   }
-  createBlockInScene(blockData);
+  createBlockInScene(blockData, e);
 });
 
 // 3) CREATE BLOCK IN SCENE
-function createBlockInScene(blockData) {
+function createBlockInScene(blockData, e) {
   // Remove old activeBlock if any
   if (activeBlock) {
     scene.remove(activeBlock);
     activeBlock = null;
   }
-  activeBlockData = null;
   isBlockPlaced = false;
 
   const loader = new OBJLoader();
@@ -204,7 +202,11 @@ function createBlockInScene(blockData) {
 
       scene.add(objRoot);
       activeBlock = objRoot;
-      activeBlockData = blockData;
+
+      const intersection = getFloorIntersection(e);
+      if (intersection) {
+        activeBlock.position.copy(intersection.point);
+      }
 
       showAllUnsnappedAttachmentPoints();
     },
@@ -213,6 +215,7 @@ function createBlockInScene(blockData) {
       console.error('Error loading OBJ:', err);
     }
   );
+
 }
 
 /**
@@ -309,7 +312,6 @@ function onMouseUp(event) {
     showAllUnsnappedAttachmentPoints();
 
     activeBlock = null;
-    activeBlockData = null;
   }
 }
 
@@ -323,7 +325,15 @@ function onKeyDown(event) {
       activeBlock.rotateY(Math.PI / 2);
     }
     showAllUnsnappedAttachmentPoints();
+  } else if (event.key === "Delete") {
+    deleteActiveBlock();
   }
+}
+
+function deleteActiveBlock() {
+  scene.remove(activeBlock);
+  activeBlock = null;
+  showAllUnsnappedAttachmentPoints();
 }
 
 // 5) RAYCAST UTILITY
@@ -575,25 +585,5 @@ function recreateBlockFromData(blockInfo) {
 
     updateCostCalculator();
     showAllUnsnappedAttachmentPoints();
-  });
-}
-
-/**
- * Toggle outlines on/off: if outlines are stored as "edgesOutline" child,
- * we can set .visible = enabled. In this example, we gave the name "edgesOutline"
- * inside addEdgeOutline(), so we can do something like this:
- */
-function toggleOutlines(enabled) {
-  // For all placed + active block, find the edgesOutline child
-  const allBlocks = [...placedBlocks];
-  if (activeBlock && !isBlockPlaced) allBlocks.push(activeBlock);
-
-  allBlocks.forEach(block => {
-    block.traverse(child => {
-      if (child.isMesh) {
-        const outline = child.getObjectByName('edgesOutline');
-        if (outline) outline.visible = enabled;
-      }
-    });
   });
 }
