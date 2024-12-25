@@ -37,6 +37,7 @@ body {
   background-color: #222;
   /* Make sure it's recognized as a drop target: */
   border: 2px dashed transparent;
+  box-sizing: border-box;
   transition: border-color 0.2s;
 }
 

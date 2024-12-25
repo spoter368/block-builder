@@ -35,7 +35,8 @@ function initScene() {
 
   // RENDERER
   renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth * 0.75, window.innerHeight);
+  // drop 4 pixels for border
+  renderer.setSize(window.innerWidth * 0.75 - 4, window.innerHeight - 4);
   document.querySelector('.right-pane').appendChild(renderer.domElement);
 
   // ORBIT CONTROLS
