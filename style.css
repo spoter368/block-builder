@@ -46,9 +46,9 @@ body {
 }
 
 
-/* Just a little styling for your "blocks" */
 .block-list {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .block-item {
@@ -115,7 +115,8 @@ body {
 
 /* Optional styling for collapsible sections */
 .collapsible-section {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 
