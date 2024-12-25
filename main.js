@@ -92,33 +92,97 @@ async function loadBlocks() {
   try {
     const res = await fetch('blocks.json');
     blocksData = await res.json();
-    createBlockList(blocksData);
+    createCategorySections(blocksData);
   } catch (err) {
     console.error('Failed to load blocks.json:', err);
   }
 }
 
-function createBlockList(blocks) {
-  const blockListDiv = document.querySelector('.block-list');
-  blockListDiv.innerHTML = '';
-  blocks.forEach(block => {
-    const itemDiv = document.createElement('div');
-    itemDiv.classList.add('block-item');
-    itemDiv.textContent = block.name;
+/**
+ * Dynamically create collapsible sections for each category key,
+ * each collapsed by default, with a plus/minus indicator in CSS.
+ */
+function createCategorySections(blocksByCat) {
+  const container = document.getElementById('categoryContainer');
+  if (!container) {
+    console.warn('#categoryContainer not found in HTML!');
+    return;
+  }
+  container.innerHTML = '';
 
-    if (block.previewImage) {
-      const img = document.createElement('img');
-      img.src = block.previewImage;
-      itemDiv.appendChild(img);
-    }
+  // For each category key (Walls, Corners, Doors, Windows, Tees, etc.)
+  Object.keys(blocksByCat).forEach(categoryName => {
+    // 1) A wrapper for the entire section
+    const sectionDiv = document.createElement('div');
+    sectionDiv.classList.add('collapsible-section');
 
-    itemDiv.setAttribute('draggable', true);
-    itemDiv.dataset.blockId = block.id;
-    itemDiv.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('application/block-id', block.id);
+    // 2) The collapsible header
+    const header = document.createElement('h3');
+    header.classList.add('collapsible-header');
+    // We'll also add a "collapsible" class for the pseudo-element approach
+    header.classList.add('collapsible');
+    // Indicate it's collapsed by default
+    header.dataset.collapsed = 'true';
+
+    header.textContent = categoryName; // e.g. "Walls"
+
+    // Toggling logic on header click
+    header.addEventListener('click', () => {
+      const isCollapsed = header.dataset.collapsed === 'true';
+      if (isCollapsed) {
+        // Expand
+        contentDiv.style.display = 'block';
+        header.dataset.collapsed = 'false';
+        // If you want a separate .active class for the minus, do:
+        header.classList.add('active');
+      } else {
+        // Collapse
+        contentDiv.style.display = 'none';
+        header.dataset.collapsed = 'true';
+        header.classList.remove('active');
+      }
     });
 
-    blockListDiv.appendChild(itemDiv);
+    // 3) Collapsible content
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('collapsible-content');
+    contentDiv.style.display = 'none'; // collapsed by default
+
+    // 4) Inside, a .block-list container
+    const blockListDiv = document.createElement('div');
+    blockListDiv.classList.add('block-list');
+
+    // Populate blockListDiv with each block in this category
+    blocksByCat[categoryName].forEach(block => {
+      const itemDiv = document.createElement('div');
+      itemDiv.classList.add('block-item');
+      itemDiv.textContent = block.name;
+
+      if (block.previewImage) {
+        const img = document.createElement('img');
+        img.src = block.previewImage;
+        itemDiv.appendChild(img);
+      }
+
+      // drag & drop
+      itemDiv.setAttribute('draggable', true);
+      itemDiv.dataset.blockId = block.id;
+      itemDiv.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('application/block-id', block.id);
+      });
+
+      blockListDiv.appendChild(itemDiv);
+    });
+
+    // 5) Put block-list into contentDiv
+    contentDiv.appendChild(blockListDiv);
+
+    // 6) Put the header & content into sectionDiv
+    sectionDiv.appendChild(header);
+    sectionDiv.appendChild(contentDiv);
+
+    // 7) Add sectionDiv to #categoryContainer
+    container.appendChild(sectionDiv);
   });
 }
 
@@ -137,12 +201,23 @@ rightPane.addEventListener('drop', (e) => {
 
   const blockId = e.dataTransfer.getData('application/block-id');
   if (!blockId) return;
-  const blockData = blocksData.find(b => b.id === blockId);
-  if (!blockData) {
+
+  let foundBlock = null;
+  for (let categoryKey in blocksData) {
+    const arr = blocksData[categoryKey];
+    const matched = arr.find(b => b.id === blockId);
+    if (matched) {
+      foundBlock = matched;
+      break;
+    }
+  }
+
+  if (!foundBlock) {
     console.warn('Block not found in blocksData for ID:', blockId);
     return;
   }
-  createBlockInScene(blockData, e);
+
+  createBlockInScene(foundBlock, e);
 });
 
 function setBlockAndOutlineColors(block, color, outlineColor) {

@@ -1,320 +1,330 @@
-[
-  {
-    "id": "block1",
-    "name": "Wall Block",
-    "cost": 1500,
-    "geometryFile": "blocks/block1.obj",
-    "attachmentPoints": [
-      {
-        "position": {
-          "x": 0.0,
-          "y": 2.0,
-          "z": -0.250
+{
+  "Walls": [
+    {
+      "id": "block1",
+      "name": "Wall Block",
+      "cost": 1500,
+      "geometryFile": "blocks/block1.obj",
+      "attachmentPoints": [
+        {
+          "position": {
+            "x": 0.0,
+            "y": 2.0,
+            "z": -0.250
+          },
+          "vector": {
+            "x": -1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "vector": {
-          "x": -1.0,
-          "y": 0.0,
-          "z": 0.0
+        {
+          "position": {
+            "x": 6.0,
+            "y": 2.0,
+            "z": -0.250
+          },
+          "vector": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 6.0,
-          "y": 2.0,
-          "z": -0.250
+        {
+          "position": {
+            "x": 3.0,
+            "y": 4.0,
+            "z": -0.250
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 1.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "vector": {
-          "x": 1.0,
-          "y": 0.0,
-          "z": 0.0
+        {
+          "position": {
+            "x": 3.0,
+            "y": 0.0,
+            "z": -0.250
+          },
+          "vector": {
+            "x": 0.0,
+            "y": -1.0,
+            "z": 0.0
+          },
+          "isSnapped": false
+        }
+      ],
+      "previewImage": "images/block1.png"
+    }
+  ],
+  "Corners": [
+    {
+      "id": "block2",
+      "name": "Corner Block",
+      "cost": 2000,
+      "geometryFile": "blocks/block2.obj",
+      "attachmentPoints": [
+        {
+          "position": {
+            "x": 4.0,
+            "y": 2.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 3.0,
-          "y": 4.0,
-          "z": -0.250
+        {
+          "position": {
+            "x": 0.250,
+            "y": 2.0,
+            "z": -4.0
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": -1.0
+          },
+          "isSnapped": false
         },
-        "vector": {
-          "x": 0.0,
-          "y": 1.0,
-          "z": 0.0
+        {
+          "position": {
+            "x": 0.25,
+            "y": 4.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 1.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 3.0,
-          "y": 0.0,
-          "z": -0.250
+        {
+          "position": {
+            "x": 0.25,
+            "y": 0.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": 0.0,
+            "y": -1.0,
+            "z": 0.0
+          },
+          "isSnapped": false
+        }
+      ],
+      "previewImage": "images/block2.png"
+    }
+  ],
+  "Doors": [
+    {
+      "id": "block3",
+      "name": "Door Block",
+      "cost": 2500,
+      "geometryFile": "blocks/block3.obj",
+      "attachmentPoints": [
+        {
+          "position": {
+            "x": 0.0,
+            "y": 2.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": -1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "vector": {
-          "x": 0.0,
-          "y": -1.0,
-          "z": 0.0
+        {
+          "position": {
+            "x": 0.0,
+            "y": 6.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": -1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "isSnapped": false
-      }
-    ],
-    "previewImage": "images/block1.png"
-  },
-  {
-    "id": "block2",
-    "name": "Corner Block",
-    "cost": 2000,
-    "geometryFile": "blocks/block2.obj",
-    "attachmentPoints": [
-      {
-        "position": {
-          "x": 4.0,
-          "y": 2.0,
-          "z": -0.25
+        {
+          "position": {
+            "x": 4.0,
+            "y": 2.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "vector": {
-          "x": 1.0,
-          "y": 0.0,
-          "z": 0.0
+        {
+          "position": {
+            "x": 4.0,
+            "y": 6.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
+        }
+      ],
+      "previewImage": "images/block3.png"
+    }
+  ],
+  "Windows": [
+    {
+      "id": "block4",
+      "name": "Window Block",
+      "cost": 1000,
+      "geometryFile": "blocks/block4.obj",
+      "attachmentPoints": [
+        {
+          "position": {
+            "x": -0.25,
+            "y": 2.0,
+            "z": 0.0
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 1.0
+          },
+          "isSnapped": false
         },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 0.250,
-          "y": 2.0,
-          "z": -4.0
+        {
+          "position": {
+            "x": -0.25,
+            "y": 6.0,
+            "z": 0.0
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 1.0
+          },
+          "isSnapped": false
         },
-        "vector": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": -1.0
+        {
+          "position": {
+            "x": -0.25,
+            "y": 2.0,
+            "z": -4.0
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": -1.0
+          },
+          "isSnapped": false
         },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 0.25,
-          "y": 4.0,
-          "z": -0.25
+        {
+          "position": {
+            "x": -0.25,
+            "y": 6.0,
+            "z": -4.0
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": -1.0
+          },
+          "isSnapped": false
+        }
+      ],
+      "previewImage": "images/block4.png"
+    }
+  ],
+  "Tees": [
+    {
+      "id": "block5",
+      "name": "Tee Block",
+      "cost": 1750,
+      "geometryFile": "blocks/block5.obj",
+      "attachmentPoints": [
+        {
+          "position": {
+            "x": 0.0,
+            "y": 2.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": -1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "vector": {
-          "x": 0.0,
-          "y": 1.0,
-          "z": 0.0
+        {
+          "position": {
+            "x": 4.0,
+            "y": 2.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": 1.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 0.25,
-          "y": 0.0,
-          "z": -0.25
+        {
+          "position": {
+            "x": 2.0,
+            "y": 4.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 1.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "vector": {
-          "x": 0.0,
-          "y": -1.0,
-          "z": 0.0
+        {
+          "position": {
+            "x": 2.0,
+            "y": 0.0,
+            "z": -0.25
+          },
+          "vector": {
+            "x": 0.0,
+            "y": -1.0,
+            "z": 0.0
+          },
+          "isSnapped": false
         },
-        "isSnapped": false
-      }
-    ],
-    "previewImage": "images/block2.png"
-  },
-  {
-    "id": "block3",
-    "name": "Door Block",
-    "cost": 2500,
-    "geometryFile": "blocks/block3.obj",
-    "attachmentPoints": [
-      {
-        "position": {
-          "x": 0.0,
-          "y": 2.0,
-          "z": -0.25
-        },
-        "vector": {
-          "x": -1.0,
-          "y": 0.0,
-          "z": 0.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 0.0,
-          "y": 6.0,
-          "z": -0.25
-        },
-        "vector": {
-          "x": -1.0,
-          "y": 0.0,
-          "z": 0.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 4.0,
-          "y": 2.0,
-          "z": -0.25
-        },
-        "vector": {
-          "x": 1.0,
-          "y": 0.0,
-          "z": 0.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 4.0,
-          "y": 6.0,
-          "z": -0.25
-        },
-        "vector": {
-          "x": 1.0,
-          "y": 0.0,
-          "z": 0.0
-        },
-        "isSnapped": false
-      }
-    ],
-    "previewImage": "images/block3.png"
-  },
-  {
-    "id": "block4",
-    "name": "Window Block",
-    "cost": 1000,
-    "geometryFile": "blocks/block4.obj",
-    "attachmentPoints": [
-      {
-        "position": {
-          "x": -0.25,
-          "y": 2.0,
-          "z": 0.0
-        },
-        "vector": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 1.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": -0.25,
-          "y": 6.0,
-          "z": 0.0
-        },
-        "vector": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 1.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": -0.25,
-          "y": 2.0,
-          "z": -4.0
-        },
-        "vector": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": -1.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": -0.25,
-          "y": 6.0,
-          "z": -4.0
-        },
-        "vector": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": -1.0
-        },
-        "isSnapped": false
-      }
-    ],
-    "previewImage": "images/block4.png"
-  },
-  {
-    "id": "block5",
-    "name": "Tee Block",
-    "cost": 1750,
-    "geometryFile": "blocks/block5.obj",
-    "attachmentPoints": [
-      {
-        "position": {
-          "x": 0.0,
-          "y": 2.0,
-          "z": -0.25
-        },
-        "vector": {
-          "x": -1.0,
-          "y": 0.0,
-          "z": 0.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 4.0,
-          "y": 2.0,
-          "z": -0.25
-        },
-        "vector": {
-          "x": 1.0,
-          "y": 0.0,
-          "z": 0.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 2.0,
-          "y": 4.0,
-          "z": -0.25
-        },
-        "vector": {
-          "x": 0.0,
-          "y": 1.0,
-          "z": 0.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 2.0,
-          "y": 0.0,
-          "z": -0.25
-        },
-        "vector": {
-          "x": 0.0,
-          "y": -1.0,
-          "z": 0.0
-        },
-        "isSnapped": false
-      },
-      {
-        "position": {
-          "x": 2.0,
-          "y": 2.0,
-          "z": -2.0
-        },
-        "vector": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": -1.0
-        },
-        "isSnapped": false
-      }
-    ],
-    "previewImage": "images/block5.png"
-  }
-]
+        {
+          "position": {
+            "x": 2.0,
+            "y": 2.0,
+            "z": -2.0
+          },
+          "vector": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": -1.0
+          },
+          "isSnapped": false
+        }
+      ],
+      "previewImage": "images/block5.png"
+    }
+  ]
+}

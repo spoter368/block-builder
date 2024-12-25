@@ -111,3 +111,46 @@ body {
   margin-bottom: 1rem;
   /* spacing below row */
 }
+
+/* Optional styling for collapsible sections */
+.collapsible-section {
+  margin-top: 1rem;
+}
+
+
+.collapsible-header:hover {
+  background-color: #ccc;
+}
+
+.collapsible-content {
+  padding: 0.5rem;
+  background-color: #eee;
+  border: 1px solid #aaa;
+  border-top: none;
+  display: none;
+  /* collapsed by default */
+}
+
+.collapsible-header {
+  cursor: pointer;
+  background-color: #ddd;
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid #aaa;
+  user-select: none;
+  position: relative;
+}
+
+/* The plus sign by default. \02795 is a heavy plus icon. */
+.collapsible:after {
+  content: '\0271A';
+  color: #000;
+  font-size: 14px;
+  float: right;
+  margin-right: 8px;
+}
+
+/* If expanded => minus. \2796 is the heavy minus icon. */
+.collapsible.active:after {
+  content: '▬';
+}

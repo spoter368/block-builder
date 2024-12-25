@@ -8,8 +8,6 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 
-
-
 <body>
   <div id="app">
     <!-- Left side menu -->
@@ -22,11 +20,11 @@
       </div>
 
       <h2>Blocks</h2>
-
       <div id="savePopup" class="popup">House copied to clipboard</div>
       <p>Drag these into the scene!</p>
-      <div class="block-list">
-      </div>
+
+      <!-- Container for all collapsible categories -->
+      <div id="categoryContainer"></div>
     </div>
 
     <!-- Right side 3D view -->
@@ -34,7 +32,7 @@
     <div class="cost-calculator" id="costCalculator"></div>
   </div>
 
-  <!-- Vite uses ES Modules; just reference main.js -->
+  <!-- Main script (ES module) -->
   <script type="module" src="/main.js"></script>
 </body>
 
