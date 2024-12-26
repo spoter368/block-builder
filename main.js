@@ -15,6 +15,9 @@ let activeBlock = null;
 let mouseDownPos = new THREE.Vector2();
 let mouseDownTime = 0;
 
+let currentRoofMesh = null; // store the roof we place
+let roofChoice = "NONE";
+
 // For showing all un-snapped attachment points in the scene
 let sceneAttachmentHelpers = new THREE.Group();
 sceneAttachmentHelpers.name = 'sceneAttachmentHelpers';
@@ -620,7 +623,7 @@ function serializeScene() {
     };
   });
 
-  const jsonStr = JSON.stringify({ blocks: data });
+  const jsonStr = JSON.stringify({ blocks: data, roof: roofChoice });
   const compressed = LZString.compressToBase64(jsonStr);
   return compressed;
 }
@@ -637,7 +640,7 @@ function onSaveScene() {
   });
 }
 
-function onLoadScene() {
+async function onLoadScene() {
   const inputEl = document.getElementById('loadSceneInput');
   if (!inputEl) return;
   const rawText = inputEl.value.trim();
@@ -671,17 +674,31 @@ function onLoadScene() {
   placedBlocks.forEach(b => scene.remove(b));
   placedBlocks = [];
 
-  // Recreate
-  parsed.blocks.forEach(blockInfo => {
-    recreateBlockFromData(blockInfo);
-  });
+  // Recreate blocks sequentially
+  for (const blockInfo of parsed.blocks) {
+    await recreateBlockFromData(blockInfo);
+  }
 
+  // After all blocks are recreated, update and handle roof
   updateCostCalculator();
   showAllUnsnappedAttachmentPoints();
+  const roofRadio = document.querySelector(`input[name="roofChoiceInput"][value="${parsed.roof}"]`);
+  roofRadio.checked = true;
+  roofRadio.dispatchEvent(new Event('change'));
 }
 
-function recreateBlockFromData(blockInfo) {
+function loadOBJWithPromise(loader, file) {
+  return new Promise((resolve, reject) => {
+    loader.load(
+      file,
+      (obj) => resolve(obj), // Resolve the promise with the loaded object
+      undefined, // onProgress
+      (error) => reject(error) // Reject the promise if an error occurs
+    );
+  });
+}
 
+async function recreateBlockFromData(blockInfo) {
   let blockDef = null;
   for (let categoryKey in blocksData) {
     const arr = blocksData[categoryKey];
@@ -693,12 +710,17 @@ function recreateBlockFromData(blockInfo) {
   }
 
   if (!blockDef) {
-    console.warn('Block not found in blocksData for ID:', blockId);
+    console.warn('Block not found in blocksData for ID:', blockInfo.blockId);
     return;
   }
 
   const loader = new OBJLoader();
-  loader.load(blockDef.geometryFile, objRoot => {
+
+  try {
+    // Wait for the object to load
+    const objRoot = await loadOBJWithPromise(loader, blockDef.geometryFile);
+
+    // Traverse and process the loaded object
     objRoot.traverse(child => {
       if (child.isMesh) {
         child.material = new THREE.MeshStandardMaterial({
@@ -734,15 +756,17 @@ function recreateBlockFromData(blockInfo) {
 
     updateCostCalculator();
     showAllUnsnappedAttachmentPoints();
-  });
+  } catch (error) {
+    console.error('Error loading OBJ file:', error);
+  }
 }
+
 
 function getMeshBoundingBox() {
   // We'll track min/max for x, y, z
   let minx = Infinity, miny = Infinity, minz = Infinity;
   let maxx = -Infinity, maxy = -Infinity, maxz = -Infinity;
 
-  // Suppose 'placedBlocks' is your array of top-level block objects
   placedBlocks.forEach(obj => {
     // compute boundingBox in world coords
     // we can use a Box3 if each obj has geometry
@@ -758,7 +782,6 @@ function getMeshBoundingBox() {
     }
   });
 
-  // If no blocks => we might keep them as Infinity / -Infinity. 
   // Let's clamp to 0 if empty:
   if (minx === Infinity) {
     minx = miny = minz = 0;
@@ -768,11 +791,8 @@ function getMeshBoundingBox() {
   return { minx, maxx, miny, maxy, minz, maxz };
 }
 
-
-let currentRoofMesh = null; // store the cube (roof) we place
-
 function initRoofRadios() {
-  document.querySelectorAll('input[name="roofChoice"]').forEach(radio => {
+  document.querySelectorAll('input[name="roofChoiceInput"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
       const choice = e.target.value;
       handleRoofChoice(choice);
@@ -786,6 +806,9 @@ function initRoofRadios() {
  *   - addEdgeOutline: your preexisting function to add wireframe edges
  */
 function handleRoofChoice(choice) {
+  // 0) Store choice for serialization
+  roofChoice = choice;
+
   // 1) Remove any existing roof
   if (currentRoofMesh) {
     scene.remove(currentRoofMesh);
