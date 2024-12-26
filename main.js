@@ -22,6 +22,8 @@ sceneAttachmentHelpers.name = 'sceneAttachmentHelpers';
 // INIT
 initScene();
 loadBlocks();
+initRoofRadios();
+
 
 // 1) SCENE SETUP
 function initScene() {
@@ -81,8 +83,8 @@ function animate() {
 }
 
 function onWindowResize() {
-  const w = window.innerWidth * 0.75;
-  const h = window.innerHeight;
+  const w = window.innerWidth * 0.75 - 4;
+  const h = window.innerHeight - 4;
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
@@ -679,9 +681,19 @@ function onLoadScene() {
 }
 
 function recreateBlockFromData(blockInfo) {
-  const blockDef = blocksData.find(b => b.id === blockInfo.blockId);
+
+  let blockDef = null;
+  for (let categoryKey in blocksData) {
+    const arr = blocksData[categoryKey];
+    const matched = arr.find(b => b.id === blockInfo.blockId);
+    if (matched) {
+      blockDef = matched;
+      break;
+    }
+  }
+
   if (!blockDef) {
-    console.error('No blockDef for ID:', blockInfo.blockId);
+    console.warn('Block not found in blocksData for ID:', blockId);
     return;
   }
 
@@ -724,3 +736,101 @@ function recreateBlockFromData(blockInfo) {
     showAllUnsnappedAttachmentPoints();
   });
 }
+
+function getMeshBoundingBox() {
+  // We'll track min/max for x, y, z
+  let minx = Infinity, miny = Infinity, minz = Infinity;
+  let maxx = -Infinity, maxy = -Infinity, maxz = -Infinity;
+
+  // Suppose 'placedBlocks' is your array of top-level block objects
+  placedBlocks.forEach(obj => {
+    // compute boundingBox in world coords
+    // we can use a Box3 if each obj has geometry
+    const box = new THREE.Box3().setFromObject(obj);
+    if (!box.isEmpty()) {
+      if (box.min.x < minx) minx = box.min.x;
+      if (box.min.y < miny) miny = box.min.y;
+      if (box.min.z < minz) minz = box.min.z;
+
+      if (box.max.x > maxx) maxx = box.max.x;
+      if (box.max.y > maxy) maxy = box.max.y;
+      if (box.max.z > maxz) maxz = box.max.z;
+    }
+  });
+
+  // If no blocks => we might keep them as Infinity / -Infinity. 
+  // Let's clamp to 0 if empty:
+  if (minx === Infinity) {
+    minx = miny = minz = 0;
+    maxx = maxy = maxz = 0;
+  }
+
+  return { minx, maxx, miny, maxy, minz, maxz };
+}
+
+
+let currentRoofMesh = null; // store the cube (roof) we place
+
+function initRoofRadios() {
+  document.querySelectorAll('input[name="roofChoice"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const choice = e.target.value;
+      handleRoofChoice(choice);
+    });
+  });
+}
+/**
+ * handleRoofChoice
+ *   - choice: "NONE", "OFFSET", "AFRAME", or "FLAT"
+ *   - getMeshBoundingBox: a function that returns { minx, maxx, miny, maxy, minz, maxz }
+ *   - addEdgeOutline: your preexisting function to add wireframe edges
+ */
+function handleRoofChoice(choice) {
+  // 1) Remove any existing roof
+  if (currentRoofMesh) {
+    scene.remove(currentRoofMesh);
+    currentRoofMesh = null;
+  }
+
+  // 2) If "NONE", do nothing else
+  if (choice === "NONE") {
+    return;
+  }
+
+  // 3) Depending on choice => set the "roofHeight"
+  let roofHeight = 1;
+  if (choice === "AFRAME") {
+    roofHeight = 2;
+  } else if (choice === "FLAT") {
+    roofHeight = 3;
+  }
+  // For OFFSET, we leave roofHeight = 1
+
+  // 4) Compute bounding box of placed blocks
+  const bbox = getMeshBoundingBox();
+  // bbox has { minx, maxx, miny, maxy, minz, maxz }
+
+  const width = bbox.maxx - bbox.minx + 2;
+  const depth = bbox.maxz - bbox.minz + 2;
+  // The bottom of the roof should start at bbox.maxy, so position's Y = maxy + (roofHeight/2)
+
+  // 5) Create geometry for the roof
+  const geom = new THREE.BoxGeometry(width, roofHeight, depth);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+  const roofMesh = new THREE.Mesh(geom, mat);
+
+  // 6) Position it
+  roofMesh.position.set(
+    (bbox.minx + bbox.maxx) / 2,     // center X
+    bbox.maxy + roofHeight / 2,     // bottom at maxy => center is half up
+    (bbox.minz + bbox.maxz) / 2     // center Z
+  );
+
+  // 7) Add edges (wireframe)
+  addEdgeOutline(roofMesh);
+
+  // 8) Add to scene & track as current roof
+  scene.add(roofMesh);
+  currentRoofMesh = roofMesh;
+}
+

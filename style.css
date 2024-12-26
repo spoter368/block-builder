@@ -156,3 +156,57 @@ body {
 .collapsible.active:after {
   content: '▬';
 }
+
+.roof-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, auto);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.roof-card {
+  cursor: pointer;
+  display: flex;
+  /* So the label acts as a container, but the real styling is inside .card-content */
+}
+
+/* Hide the raw radio input */
+.roof-card input[type="radio"] {
+  display: none;
+}
+
+/* The main container for image + text */
+.roof-card .card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #aaa;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  width: 100%;
+  /* fill parent's grid cell */
+}
+
+/* By default, no highlight */
+.roof-card .card-content:hover {
+  /* optional hover highlight */
+  background-color: #f0f0f0;
+}
+
+/* If the radio is checked, we style the .card-content with a thicker border + shadow */
+.roof-card input[type="radio"]:checked~.card-content {
+  border: 3px solid #333;
+  /* thicker border to indicate selection */
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Ensure images can grow to fill the cell */
+.roof-card img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 0.5rem;
+}
