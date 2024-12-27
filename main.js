@@ -649,7 +649,7 @@ function serializeScene() {
     };
   });
 
-  const jsonStr = JSON.stringify({ blocks: data, roof: roofChoice });
+  const jsonStr = JSON.stringify({ blocks: data, roof: roofChoice, roofRot: roofRotation });
   const compressed = LZString.compressToBase64(jsonStr);
   return compressed;
 }
@@ -708,6 +708,7 @@ async function onLoadScene() {
   // After all blocks are recreated, update and handle roof
   updateCostCalculator();
   showAllUnsnappedAttachmentPoints();
+  roofRotation = parsed.roofRot;
   const roofRadio = document.querySelector(`input[name="roofChoiceInput"][value="${parsed.roof}"]`);
   roofRadio.checked = true;
   roofRadio.dispatchEvent(new Event('change'));
@@ -1078,27 +1079,17 @@ function makeOffsetSoffit(side, widthX, depthZ) {
 }
 
 
-
-///////////////////////////////////////////////
-// HELPER: create a FLAT roof
-///////////////////////////////////////////////
-function makeFlatRoof(bbox) {
-  /**
-   * A simple rectangular prism (1 unit in Y),
-   * Overhang in X and Z, thickness=1
-   */
-  const widthX = (bbox.maxx - bbox.minx) + 2 * SOFFIT_LENGTH;
-  const depthZ = (bbox.maxz - bbox.minz) + 2 * SOFFIT_LENGTH;
+function buildFlatRoof(widthX, depthZ) {
   const thickness = SOFFIT_THICKNESS;
 
-  const geom = new THREE.BoxGeometry(widthX, thickness, depthZ);
+  const geom = new THREE.BoxGeometry(widthX + 2 * SOFFIT_LENGTH, thickness, depthZ + 2 * SOFFIT_LENGTH);
   const mat = new THREE.MeshStandardMaterial({ color: 0x0000ff, side: THREE.DoubleSide });
   const flatMesh = new THREE.Mesh(geom, mat);
 
   flatMesh.position.set(
-    (bbox.minx + bbox.maxx) / 2,
-    bbox.maxy + thickness / 2,
-    (bbox.minz + bbox.maxz) / 2
+    0,
+    thickness,
+    0
   );
   addEdgeOutline(flatMesh);
   return flatMesh;
