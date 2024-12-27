@@ -5,11 +5,9 @@
   <meta charset="utf-8" />
   <title>My 3D Block Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script type="module" crossorigin src="/block-builder/assets/index-BZ0I-8Eg.js"></script>
-  <link rel="stylesheet" crossorigin href="/block-builder/assets/index-DWMGJLa9.css">
+  <script type="module" crossorigin src="/block-builder/assets/index-DRjiMMqy.js"></script>
+  <link rel="stylesheet" crossorigin href="/block-builder/assets/index-Cve4Wf2t.css">
 </head>
-
-
 
 <body>
   <div id="app">
@@ -23,11 +21,55 @@
       </div>
 
       <h2>Blocks</h2>
-
       <div id="savePopup" class="popup">House copied to clipboard</div>
       <p>Drag these into the scene!</p>
-      <div class="block-list">
+
+      <!-- Container for all collapsible categories -->
+      <div id="categoryContainer"></div>
+
+      <h2>Roofs</h2>
+      <p>Select a roof</p>
+      <div class="roof-grid">
+        <!-- Option 1: NONE -->
+        <label class="roof-card">
+          <input type="radio" name="roofChoiceInput" value="NONE" checked />
+          <span class="card-content">
+            <img src="images/none.png" alt="No Roof" />
+            <p>NONE</p>
+          </span>
+        </label>
+
+        <!-- Option 2: OFFSET -->
+        <label class="roof-card">
+          <input type="radio" name="roofChoiceInput" value="OFFSET" />
+          <span class="card-content">
+            <img src="images/offset.png" alt="Offset Roof" />
+            <p>OFFSET</p>
+          </span>
+        </label>
+
+        <!-- Option 3: A-FRAME -->
+        <label class="roof-card">
+          <input type="radio" name="roofChoiceInput" value="AFRAME" />
+          <span class="card-content">
+            <img src="images/aframe.png" alt="A-Frame Roof" />
+            <p>A-FRAME</p>
+          </span>
+        </label>
+
+        <!-- Option 4: FLAT -->
+        <label class="roof-card">
+          <input type="radio" name="roofChoiceInput" value="FLAT" />
+          <span class="card-content">
+            <img src="images/flat.png" alt="Flat Roof" />
+            <p>FLAT</p>
+          </span>
+        </label>
       </div>
+
+
+
+
     </div>
 
     <!-- Right side 3D view -->
@@ -35,7 +77,7 @@
     <div class="cost-calculator" id="costCalculator"></div>
   </div>
 
-  <!-- Vite uses ES Modules; just reference main.js -->
+  <!-- Main script (ES module) -->
 </body>
 
 </html>
