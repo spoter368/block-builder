@@ -16,7 +16,15 @@ let mouseDownPos = new THREE.Vector2();
 let mouseDownTime = 0;
 
 let currentRoofMesh = null; // store the roof we place
-let roofChoice = "NONE";
+let roofChoice = "NONE"; // store roof choice in nice text for saving
+let roofRotation = 0; // store rotation of the roof for saving
+
+// Roof constants
+const SOFFIT_LENGTH = 1.0;      // how much each roof overhangs bounding box in X/Z
+const SOFFIT_THICKNESS = 0.4; // how thick each soffit piece is in the y axis
+const OFFSET_RATIO = 0.7;       // 70% for the bigger half, 30% for smaller half
+const slopeDeg = 14.04;         // 3/12 slope in degrees
+const slopeAngle = slopeDeg * Math.PI / 180; // slope in radians
 
 // For showing all un-snapped attachment points in the scene
 let sceneAttachmentHelpers = new THREE.Group();
@@ -435,18 +443,36 @@ function onMouseUp(event) {
 }
 
 function onKeyDown(event) {
-  if (!activeBlock) return;
-
-  if (event.key.toLowerCase() === 'r') {
-    if (event.shiftKey) {
-      activeBlock.rotateY(-Math.PI / 2);
-    } else {
-      activeBlock.rotateY(Math.PI / 2);
+  if (activeBlock) {
+    if (event.key.toLowerCase() === 'r') {
+      if (event.shiftKey) {
+        activeBlock.rotateY(-Math.PI / 2);
+      } else {
+        activeBlock.rotateY(Math.PI / 2);
+      }
+      showAllUnsnappedAttachmentPoints();
+    } else if (event.key === "Delete") {
+      deleteActiveBlock();
     }
-    showAllUnsnappedAttachmentPoints();
-  } else if (event.key === "Delete") {
-    deleteActiveBlock();
+  } else { // no active block, rotate roof
+    if (event.key.toLowerCase() === 'r') {
+      if (event.shiftKey) {
+        if (roofRotation < 3) {
+          roofRotation++;
+        } else {
+          roofRotation = 0;
+        }
+      } else {
+        if (roofRotation > 0) {
+          roofRotation--;
+        } else {
+          roofRotation = 3;
+        }
+      }
+      handleRoofChoice(roofChoice);
+    }
   }
+
 }
 
 function deleteActiveBlock() {
@@ -800,15 +826,6 @@ function initRoofRadios() {
   });
 }
 
-///////////////////////////////////////////////
-// CONFIGURABLE CONSTANTS
-///////////////////////////////////////////////
-const SOFFIT_LENGTH = 1.0;      // how much each roof overhangs bounding box in X/Z
-const SOFFIT_THICKNESS = 0.4; // how thick each soffit piece is in the dimension it's extruded
-const OFFSET_RATIO = 0.7;       // 70% for the bigger half, 30% for smaller half
-const slopeDeg = 14.04;         // 3/12 slope in degrees
-const slopeAngle = slopeDeg * Math.PI / 180; // slope in radians
-
 /**
  * The main function to handle a user picking a new roof choice.
  *   - choice: "NONE", "AFRAME", "OFFSET", "FLAT"
@@ -834,6 +851,15 @@ function handleRoofChoice(choice) {
     return;
   }
 
+  // do something with bbox here to rotate it about the y axis in the case that roofRotation == 1
+  if (roofRotation == 1 || roofRotation == 3) {
+    const oldBbox = JSON.parse(JSON.stringify(bbox));
+    bbox.maxx = oldBbox.maxz;
+    bbox.minx = oldBbox.minz;
+    bbox.maxz = oldBbox.maxx;
+    bbox.minz = oldBbox.minx;
+  }
+
   // 4) Build roof
   let newRoof = null;
   switch (choice) {
@@ -850,6 +876,18 @@ function handleRoofChoice(choice) {
       console.warn("Unknown roof choice:", choice);
       return;
   }
+
+  let midx = (bbox.minx + bbox.maxx) / 2;
+  let midz = (bbox.minz + bbox.maxz) / 2;
+
+  // if roofRotation is 0, do nothing, if it's 1, rotate newroof by 90deg, if 2, 180deg, if 3 270deg
+  const rotationPoint = new THREE.Vector3(midx, 0, midz); // Point to rotate around
+  const offset = new THREE.Vector3().subVectors(newRoof.position, rotationPoint);
+  newRoof.position.sub(offset);
+  newRoof.rotateY((Math.PI / 2) * roofRotation);
+  newRoof.position.add(offset);
+
+
 
   // 5) Add to scene & track
   if (newRoof) {
