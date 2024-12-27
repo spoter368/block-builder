@@ -799,14 +799,23 @@ function initRoofRadios() {
     });
   });
 }
+
+///////////////////////////////////////////////
+// CONFIGURABLE CONSTANTS
+///////////////////////////////////////////////
+const SOFFIT_LENGTH = 1.0;      // how much each roof overhangs bounding box in X/Z
+const SOFFIT_THICKNESS = 0.4; // how thick each soffit piece is in the dimension it's extruded
+const OFFSET_RATIO = 0.7;       // 70% for the bigger half, 30% for smaller half
+const slopeDeg = 14.04;         // 3/12 slope in degrees
+const slopeAngle = slopeDeg * Math.PI / 180; // slope in radians
+
 /**
- * handleRoofChoice
- *   - choice: "NONE", "OFFSET", "AFRAME", or "FLAT"
- *   - getMeshBoundingBox: a function that returns { minx, maxx, miny, maxy, minz, maxz }
- *   - addEdgeOutline: your preexisting function to add wireframe edges
+ * The main function to handle a user picking a new roof choice.
+ *   - choice: "NONE", "AFRAME", "OFFSET", "FLAT"
+ *   - getMeshBoundingBox(): => { minx, maxx, miny, maxy, minz, maxz }
+ *   - addEdgeOutline(mesh): adds wireframe edges
  */
 function handleRoofChoice(choice) {
-  // 0) Store choice for serialization
   roofChoice = choice;
 
   // 1) Remove any existing roof
@@ -815,45 +824,274 @@ function handleRoofChoice(choice) {
     currentRoofMesh = null;
   }
 
-  // 2) If "NONE", do nothing else
-  if (choice === "NONE") {
+  // 2) "NONE" => no roof
+  if (choice === "NONE") return;
+
+  // 3) bounding box
+  const bbox = getMeshBoundingBox();
+  if (bbox.minx === Infinity) {
+    console.warn("No blocks in scene => cannot create roof.");
     return;
   }
 
-  // 3) Depending on choice => set the "roofHeight"
-  let roofHeight = 1;
-  if (choice === "AFRAME") {
-    roofHeight = 2;
-  } else if (choice === "FLAT") {
-    roofHeight = 3;
+  // 4) Build roof
+  let newRoof = null;
+  switch (choice) {
+    case "AFRAME":
+      newRoof = makeAFrameRoof(bbox);
+      break;
+    case "OFFSET":
+      newRoof = makeOffsetRoof(bbox);
+      break;
+    case "FLAT":
+      newRoof = makeFlatRoof(bbox);
+      break;
+    default:
+      console.warn("Unknown roof choice:", choice);
+      return;
   }
-  // For OFFSET, we leave roofHeight = 1
 
-  // 4) Compute bounding box of placed blocks
-  const bbox = getMeshBoundingBox();
-  // bbox has { minx, maxx, miny, maxy, minz, maxz }
-
-  const width = bbox.maxx - bbox.minx + 2;
-  const depth = bbox.maxz - bbox.minz + 2;
-  // The bottom of the roof should start at bbox.maxy, so position's Y = maxy + (roofHeight/2)
-
-  // 5) Create geometry for the roof
-  const geom = new THREE.BoxGeometry(width, roofHeight, depth);
-  const mat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
-  const roofMesh = new THREE.Mesh(geom, mat);
-
-  // 6) Position it
-  roofMesh.position.set(
-    (bbox.minx + bbox.maxx) / 2,     // center X
-    bbox.maxy + roofHeight / 2,     // bottom at maxy => center is half up
-    (bbox.minz + bbox.maxz) / 2     // center Z
-  );
-
-  // 7) Add edges (wireframe)
-  addEdgeOutline(roofMesh);
-
-  // 8) Add to scene & track as current roof
-  scene.add(roofMesh);
-  currentRoofMesh = roofMesh;
+  // 5) Add to scene & track
+  if (newRoof) {
+    scene.add(newRoof);
+    currentRoofMesh = newRoof;
+  }
 }
 
+/**
+ * Creates an A-FRAME roof with:
+ * 1) The main triangular extrude from x=-width/2 to x=+width/2, rising up to apex y=?
+ *    extruded in Z for "depth" = (bbox.maxz - bbox.minz).
+ * 2) Two "soffit" sections, each a rhombus in X-Y plane, extruded 0.8 in Z, 
+ *    overhanging by SOFFIT_LENGTH beyond the house width.
+ */
+function makeAFrameRoof(bbox) {
+  const group = new THREE.Group();
+
+  //////////////////////////////
+  // 1) Main Triangular Section
+  //////////////////////////////
+  const widthX = (bbox.maxx - bbox.minx);
+  const depthZ = (bbox.maxz - bbox.minz);
+
+  // apex in Y => tan(slopeAngle)*(widthX/2)
+  const apexY = Math.tan(slopeAngle) * (widthX / 2);
+
+  // Triangular shape in X-Y plane from x=-widthX/2..+widthX/2 => apex
+  const shape = new THREE.Shape();
+  shape.moveTo(-widthX / 2, 0);
+  shape.lineTo(widthX / 2, 0);
+  shape.lineTo(0, apexY);
+  shape.closePath();
+
+  // Extrude in Z => totalDepthZ
+  const triGeom = new THREE.ExtrudeGeometry(shape, {
+    depth: depthZ,
+    bevelEnabled: false
+  });
+  const triMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+  const mainTri = new THREE.Mesh(triGeom, triMat);
+
+  // Position so bottom sits at y=bbox.maxy, and center in z => from minz to maxz
+  // By default, the extrude goes along +Z => shape in X-Y at z=0..z=depth
+  // We'll shift it so that z=0 => z=(bbox.minz)
+  mainTri.position.set(
+    (bbox.minx + bbox.maxx) / 2, // center X
+    bbox.maxy,                   // bottom sits at top of walls
+    bbox.minz // anchor the front at minz
+  );
+
+  addEdgeOutline(mainTri);
+  group.add(mainTri);
+
+  // add soffits
+  const leftSoffit = makeAFrameSoffit("left", bbox);
+  group.add(leftSoffit);
+
+  const rightSoffit = makeAFrameSoffit("right", bbox);
+  group.add(rightSoffit);
+
+  return group;
+}
+
+function makeAFrameSoffit(side, bbox) {
+
+  // define constants
+  const widthX = (bbox.maxx - bbox.minx);
+  const depthZ = (bbox.maxz - bbox.minz);
+
+  // apex in Y => tan(slopeAngle)*(widthX/2)
+  const apexY = Math.tan(slopeAngle) * (widthX / 2);
+
+  // Create side profile of soffit
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(-SOFFIT_LENGTH, -Math.tan(slopeAngle) * SOFFIT_LENGTH);
+  shape.lineTo(-SOFFIT_LENGTH, -Math.tan(slopeAngle) * SOFFIT_LENGTH + SOFFIT_THICKNESS);
+  shape.lineTo(widthX / 2, apexY + SOFFIT_THICKNESS);
+  shape.lineTo(widthX / 2, apexY);
+  shape.closePath();
+
+  const soffitGeom = new THREE.ExtrudeGeometry(shape, {
+    depth: depthZ + 2 * SOFFIT_LENGTH,
+    bevelEnabled: false
+  });
+  const soffitMat = new THREE.MeshStandardMaterial({ color: 0xff00ff, side: THREE.DoubleSide });
+  const soffitMesh = new THREE.Mesh(soffitGeom, soffitMat);
+
+  let flip = (side == "left") ? 1 : -1;
+  soffitMesh.scale.set(flip, 1, 1);
+
+
+  let anchorX = (side == "left") ? bbox.minx : bbox.maxx;
+
+  soffitMesh.position.set(anchorX, bbox.maxy, bbox.minz - SOFFIT_LENGTH);
+
+  addEdgeOutline(soffitMesh);
+  return soffitMesh;
+}
+
+
+function makeOffsetRoof(bbox) {
+  /**
+   * 2 triangular sections side by side, each extruded in Z.
+   * The left side = big portion => ratio=70%
+   * The right side = small portion => ratio=30%
+   * Each side has its own apex (since one is bigger => apex is taller).
+   * Then we group them together, so they form an offset ridge line.
+   */
+  const widthX = bbox.maxx - bbox.minx;
+  const depthZ = bbox.maxz - bbox.minz;
+
+  // left portion
+  const leftW = widthX * OFFSET_RATIO;
+  const leftApexY = Math.tan(slopeAngle) * leftW;
+
+  // right portion
+  const rightW = widthX * (1 - OFFSET_RATIO);
+  const rightApexY = Math.tan(slopeAngle) * rightW;
+
+  const group = new THREE.Group();
+
+  // left shape in X-Y
+  // from x=0..leftW, with apex at x= leftW/2, y= leftApexY
+  // We'll extrude it, then shift it so its bottom left corner is at x= -totalWidthX/2
+  const leftShape = new THREE.Shape();
+  leftShape.moveTo(0, 0);
+  leftShape.lineTo(leftW, 0);
+  leftShape.lineTo(leftW, leftApexY);
+  leftShape.closePath();
+
+  const extrudeLeft = new THREE.ExtrudeGeometry(leftShape, { depth: depthZ, bevelEnabled: false });
+  const matLeft = new THREE.MeshStandardMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+  const leftMesh = new THREE.Mesh(extrudeLeft, matLeft);
+
+  // position left mesh:
+  // shape's "lowest x" = 0 => we shift it to x= -totalWidthX/2
+  // shape extends in z=0..depthZ => we shift Z so center is (minz+maxz)/2 - depthZ/2
+  leftMesh.position.set(
+    bbox.minx,
+    bbox.maxy,
+    bbox.minz
+  );
+  addEdgeOutline(leftMesh);
+  group.add(leftMesh);
+
+  // right shape:
+  // from x=0..rightW, apex x= rightW/2 => apex y= rightApexY
+  const rightShape = new THREE.Shape();
+  rightShape.moveTo(0, 0);
+  rightShape.lineTo(-rightW, 0);
+  rightShape.lineTo(-rightW, rightApexY);
+  rightShape.closePath();
+
+  const extrudeRight = new THREE.ExtrudeGeometry(rightShape, { depth: depthZ, bevelEnabled: false });
+  const matRight = new THREE.MeshStandardMaterial({ color: 0xffff00, side: THREE.DoubleSide });
+  const rightMesh = new THREE.Mesh(extrudeRight, matRight);
+
+  // position so it sits immediately after the left portion:
+  // x => left edge is -totalWidthX/2 + leftW
+  // y => bbox.maxy
+  // z => same shift
+  rightMesh.position.set(
+    bbox.maxx,
+    bbox.maxy,
+    bbox.minz
+  );
+  addEdgeOutline(rightMesh);
+  group.add(rightMesh);
+
+  // add soffits
+  const leftSoffit = makeOffsetSoffit("left", bbox);
+  group.add(leftSoffit);
+
+  const rightSoffit = makeOffsetSoffit("right", bbox);
+  group.add(rightSoffit);
+
+  return group;
+}
+
+function makeOffsetSoffit(side, bbox) {
+
+  const widthMultiplier = (side == "left") ? OFFSET_RATIO : 1 - OFFSET_RATIO;
+  // define constants
+  const widthX = (bbox.maxx - bbox.minx) * widthMultiplier;
+  const depthZ = (bbox.maxz - bbox.minz);
+
+  // apex in Y => tan(slopeAngle)*(widthX/2)
+  const apexY = Math.tan(slopeAngle) * (widthX);
+
+  // Create side profile of soffit
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(-SOFFIT_LENGTH, -Math.tan(slopeAngle) * SOFFIT_LENGTH);
+  shape.lineTo(-SOFFIT_LENGTH, -Math.tan(slopeAngle) * SOFFIT_LENGTH + SOFFIT_THICKNESS);
+  shape.lineTo(widthX + SOFFIT_LENGTH, apexY + SOFFIT_THICKNESS);
+  shape.lineTo(widthX + SOFFIT_LENGTH, apexY);
+  shape.closePath();
+
+  const soffitGeom = new THREE.ExtrudeGeometry(shape, {
+    depth: depthZ + 2 * SOFFIT_LENGTH,
+    bevelEnabled: false
+  });
+  const soffitMat = new THREE.MeshStandardMaterial({ color: 0xff00ff, side: THREE.DoubleSide });
+  const soffitMesh = new THREE.Mesh(soffitGeom, soffitMat);
+
+  let flip = (side == "left") ? 1 : -1;
+  soffitMesh.scale.set(flip, 1, 1);
+
+
+  let anchorX = (side == "left") ? bbox.minx : bbox.maxx;
+
+  soffitMesh.position.set(anchorX, bbox.maxy, bbox.minz - SOFFIT_LENGTH);
+
+  addEdgeOutline(soffitMesh);
+  return soffitMesh;
+}
+
+
+
+///////////////////////////////////////////////
+// HELPER: create a FLAT roof
+///////////////////////////////////////////////
+function makeFlatRoof(bbox) {
+  /**
+   * A simple rectangular prism (1 unit in Y),
+   * Overhang in X and Z, thickness=1
+   */
+  const widthX = (bbox.maxx - bbox.minx) + 2 * SOFFIT_LENGTH;
+  const depthZ = (bbox.maxz - bbox.minz) + 2 * SOFFIT_LENGTH;
+  const thickness = SOFFIT_THICKNESS;
+
+  const geom = new THREE.BoxGeometry(widthX, thickness, depthZ);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x0000ff, side: THREE.DoubleSide });
+  const flatMesh = new THREE.Mesh(geom, mat);
+
+  flatMesh.position.set(
+    (bbox.minx + bbox.maxx) / 2,
+    bbox.maxy + thickness / 2,
+    (bbox.minz + bbox.maxz) / 2
+  );
+  addEdgeOutline(flatMesh);
+  return flatMesh;
+}
