@@ -317,7 +317,7 @@ function createBlockInScene(blockData, e) {
 function addEdgeOutline(mesh, color = 0x000000) {
   if (!mesh.geometry) return;
 
-  const edgesGeo = new THREE.EdgesGeometry(mesh.geometry, 1);
+  const edgesGeo = new THREE.EdgesGeometry(mesh.geometry, 5);
   const lineMat = new THREE.LineBasicMaterial({ color });
   const outline = new THREE.LineSegments(edgesGeo, lineMat);
   outline.name = 'edgesOutline';
