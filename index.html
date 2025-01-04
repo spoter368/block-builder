@@ -13,6 +13,7 @@
     <!-- Left side menu -->
     <div class="left-pane">
       <h2>Save/Load</h2>
+      <p class="description">Save house to clipboard</p>
       <div class="save-load-row">
         <button id="saveSceneBtn">💾 Save</button>
         <input id="loadSceneInput" placeholder="Load house:" />
@@ -21,19 +22,19 @@
 
       <h2>Blocks</h2>
       <div id="savePopup" class="popup">House copied to clipboard</div>
-      <p>Drag these into the scene!</p>
+      <p class="description">Drag these into the scene!</p>
 
       <!-- Container for all collapsible categories -->
       <div id="categoryContainer"></div>
 
       <h2>Roofs</h2>
-      <p>Select a roof</p>
+      <p class="description">Select a roof</p>
       <div class="roof-grid">
         <!-- Option 1: NONE -->
         <label class="roof-card">
           <input type="radio" name="roofChoiceInput" value="NONE" checked />
           <span class="card-content">
-            <img src="images/none.png" alt="No Roof" />
+            <img src="images/noroof.png" alt="No Roof" />
             <p>NONE</p>
           </span>
         </label>
@@ -42,7 +43,7 @@
         <label class="roof-card">
           <input type="radio" name="roofChoiceInput" value="OFFSET" />
           <span class="card-content">
-            <img src="images/offset.png" alt="Offset Roof" />
+            <img src="images/offsetroof.png" alt="Offset Roof" />
             <p>OFFSET</p>
           </span>
         </label>
@@ -51,7 +52,7 @@
         <label class="roof-card">
           <input type="radio" name="roofChoiceInput" value="AFRAME" />
           <span class="card-content">
-            <img src="images/aframe.png" alt="A-Frame Roof" />
+            <img src="images/aframeroof.png" alt="A-Frame Roof" />
             <p>A-FRAME</p>
           </span>
         </label>
@@ -60,7 +61,7 @@
         <label class="roof-card">
           <input type="radio" name="roofChoiceInput" value="FLAT" />
           <span class="card-content">
-            <img src="images/flat.png" alt="Flat Roof" />
+            <img src="images/flatroof.png" alt="Flat Roof" />
             <p>FLAT</p>
           </span>
         </label>

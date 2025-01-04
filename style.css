@@ -10,7 +10,21 @@ html,
 body {
   width: 100%;
   height: 100%;
-  font-family: sans-serif;
+  background-color: #fdfdfd;
+  /* near white */
+  color: #222;
+  margin: 0;
+  padding: 0;
+  font-family: 'Open Sans', Arial, sans-serif;
+}
+
+h2 {
+  padding-top: 0.5rem;
+}
+
+.description {
+  margin-top: 0.1rem;
+  margin-left: 0.1rem;
 }
 
 /* The main container that holds left-pane and right-pane */
@@ -24,10 +38,9 @@ body {
 /* Left pane = 25% width */
 .left-pane {
   width: 25%;
-  background-color: #f0f0f0;
   padding: 1rem;
   overflow-y: auto;
-  border-right: 1px solid #ccc;
+  border-right: 1px solid #000;
 }
 
 /* Right pane = 75% width */
@@ -35,45 +48,8 @@ body {
   width: 75%;
   position: relative;
   background-color: #222;
-  /* Make sure it's recognized as a drop target: */
-  border: 2px dashed transparent;
-  box-sizing: border-box;
-  transition: border-color 0.2s;
 }
 
-.right-pane.drop-highlight {
-  border-color: #ffcc00;
-}
-
-
-.block-list {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.block-item {
-  background-color: #ddd;
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  cursor: grab;
-  border: 1px solid #aaa;
-  text-align: center;
-}
-
-/* When you start dragging */
-.block-item:active {
-  cursor: grabbing;
-}
-
-.block-list img {
-  max-width: 200px;
-  max-height: 200px;
-  height: auto;
-  width: auto;
-  display: block;
-  margin: 0 auto;
-  /* center horizontally if you like */
-}
 
 .popup {
   position: absolute;
@@ -83,10 +59,8 @@ body {
   /* dark green text */
   padding: 0.5rem 1rem;
   border-radius: 4px;
-  top: 60px;
-  /* or wherever you want it to appear */
+  top: 100px;
   left: 20px;
-  /* adjust as needed */
   display: none;
   z-index: 999;
 }
@@ -110,51 +84,103 @@ body {
   /* small spacing between elements */
   align-items: center;
   margin-bottom: 1rem;
-  /* spacing below row */
+  margin-top: 0.2rem;
 }
 
-/* Optional styling for collapsible sections */
-.collapsible-section {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-
-.collapsible-header:hover {
-  background-color: #ccc;
-}
-
-.collapsible-content {
-  padding: 0.5rem;
-  background-color: #eee;
+.block-list {
+  display: flex;
+  flex-wrap: wrap;
+  /* Allow items to wrap to the next row */
+  justify-content: space-between;
+  /* Evenly distribute items */
+  margin: 0 0.5rem;
+  background-color: #fafafa;
   border: 1px solid #aaa;
   border-top: none;
-  display: none;
-  /* collapsed by default */
+  padding: 0.5rem;
+}
+
+.block-item {
+  flex: 1 1 calc(50% - 1rem);
+  /* Each item gets 50% width minus margin */
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  margin: 0.5rem;
+  padding: 0.5rem;
+  background-color: #fff;
+  transition: box-shadow 0.2s;
+  cursor: grab;
+}
+
+
+.block-item:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* The image on the left */
+.block-img {
+  max-width: 100px;
+  /* or tweak */
+  height: auto;
+  margin-right: 0.5rem;
+  object-fit: contain;
+  /* keep aspect ratio */
+}
+
+/* The text container on the right */
+.block-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-right: 0.5rem;
+}
+
+/* Larger text for name */
+.block-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+/* Price or cost info in smaller/lighter text */
+.block-price {
+  font-size: 0.9rem;
+  color: #cc0000;
+  /* red accent */
+}
+
+/* Dragging */
+.block-item:active {
+  cursor: grabbing;
 }
 
 .collapsible-header {
   cursor: pointer;
-  background-color: #ddd;
-  margin: 0;
+  background-color: #f2f2f2;
+  margin: 0.5rem 0.5rem 0rem 0.5rem;
   padding: 0.5rem;
   border: 1px solid #aaa;
   user-select: none;
   position: relative;
+  color: #222;
 }
 
-/* The plus sign by default. \02795 is a heavy plus icon. */
+.collapsible-header:hover {
+  background-color: #e6e6e6;
+}
+
 .collapsible:after {
-  content: '\0271A';
-  color: #000;
+  content: '\02795';
+  color: #cc0000;
   font-size: 14px;
   float: right;
   margin-right: 8px;
 }
 
-/* If expanded => minus. \2796 is the heavy minus icon. */
 .collapsible.active:after {
-  content: '▬';
+  content: '\2796';
 }
 
 .roof-grid {
@@ -162,6 +188,7 @@ body {
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, auto);
   gap: 0.5rem;
+  margin-top: 0.2rem;
   margin-bottom: 1rem;
   width: 100%;
 }
@@ -169,15 +196,12 @@ body {
 .roof-card {
   cursor: pointer;
   display: flex;
-  /* So the label acts as a container, but the real styling is inside .card-content */
 }
 
-/* Hide the raw radio input */
 .roof-card input[type="radio"] {
   display: none;
 }
 
-/* The main container for image + text */
 .roof-card .card-content {
   display: flex;
   flex-direction: column;
@@ -187,25 +211,22 @@ body {
   padding: 0.5rem;
   box-sizing: border-box;
   width: 100%;
-  /* fill parent's grid cell */
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
 }
 
-/* By default, no highlight */
 .roof-card .card-content:hover {
-  /* optional hover highlight */
   background-color: #f0f0f0;
 }
 
-/* If the radio is checked, we style the .card-content with a thicker border + shadow */
 .roof-card input[type="radio"]:checked~.card-content {
   border: 3px solid #333;
-  /* thicker border to indicate selection */
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
 }
 
-/* Ensure images can grow to fill the cell */
 .roof-card img {
-  max-width: 100%;
+  max-width: 50%;
   height: auto;
   display: block;
   margin-bottom: 0.5rem;

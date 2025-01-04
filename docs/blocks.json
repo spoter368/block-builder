@@ -3,7 +3,7 @@
     {
       "id": "wallblock2ft",
       "name": "2FT Wall Block",
-      "cost": 1500,
+      "cost": 750,
       "geometryFile": "blocks/wallblock2ft.obj",
       "attachmentPoints": [
         {
@@ -64,7 +64,7 @@
     {
       "id": "wallblock4ft",
       "name": "4FT Wall Block",
-      "cost": 1500,
+      "cost": 1000,
       "geometryFile": "blocks/wallblock4ft.obj",
       "attachmentPoints": [
         {
@@ -125,7 +125,7 @@
     {
       "id": "wallblock8ft",
       "name": "8FT Wall Block",
-      "cost": 1500,
+      "cost": 1250,
       "geometryFile": "blocks/wallblock8ft.obj",
       "attachmentPoints": [
         {
@@ -188,7 +188,7 @@
     {
       "id": "right2ftcorner",
       "name": "2FT Right Corner Block",
-      "cost": 2000,
+      "cost": 1000,
       "geometryFile": "blocks/right2ftcorner.obj",
       "attachmentPoints": [
         {
@@ -249,7 +249,7 @@
     {
       "id": "right4ftcorner",
       "name": "4FT Right Corner Block",
-      "cost": 2000,
+      "cost": 1500,
       "geometryFile": "blocks/right4ftcorner.obj",
       "attachmentPoints": [
         {
@@ -310,7 +310,7 @@
     {
       "id": "roundcorner2ft",
       "name": "2FT Round Corner Block",
-      "cost": 2000,
+      "cost": 1000,
       "geometryFile": "blocks/roundcorner2ft.obj",
       "attachmentPoints": [
         {
@@ -371,7 +371,7 @@
     {
       "id": "roundcorner4ft",
       "name": "4FT Round Corner Block",
-      "cost": 2000,
+      "cost": 1500,
       "geometryFile": "blocks/roundcorner4ft.obj",
       "attachmentPoints": [
         {
@@ -434,7 +434,7 @@
     {
       "id": "doorblock",
       "name": "Single Door Block",
-      "cost": 2500,
+      "cost": 700,
       "geometryFile": "blocks/doorblock.obj",
       "attachmentPoints": [
         {
@@ -495,7 +495,7 @@
     {
       "id": "doubledoorblock",
       "name": "Double Door Block",
-      "cost": 2500,
+      "cost": 1200,
       "geometryFile": "blocks/doubledoorblock.obj",
       "attachmentPoints": [
         {
@@ -621,7 +621,7 @@
     {
       "id": "teeblock1ft",
       "name": "1FT Tee Block",
-      "cost": 1750,
+      "cost": 750,
       "geometryFile": "blocks/teeblock1ft.obj",
       "attachmentPoints": [
         {
@@ -695,7 +695,7 @@
     {
       "id": "teeblock2ft",
       "name": "2FT Tee Block",
-      "cost": 1750,
+      "cost": 1250,
       "geometryFile": "blocks/teeblock2ft.obj",
       "attachmentPoints": [
         {

@@ -48,8 +48,7 @@ function initScene() {
 
   // RENDERER
   renderer = new THREE.WebGLRenderer({ antialias: true });
-  // drop 4 pixels for border
-  renderer.setSize(window.innerWidth * 0.75 - 4, window.innerHeight - 4);
+  renderer.setSize(window.innerWidth * 0.75, window.innerHeight);
   document.querySelector('.right-pane').appendChild(renderer.domElement);
 
   // ORBIT CONTROLS
@@ -94,8 +93,8 @@ function animate() {
 }
 
 function onWindowResize() {
-  const w = window.innerWidth * 0.75 - 4;
-  const h = window.innerHeight - 4;
+  const w = window.innerWidth * 0.75;
+  const h = window.innerHeight;
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
@@ -124,33 +123,24 @@ function createCategorySections(blocksByCat) {
   }
   container.innerHTML = '';
 
-  // For each category key (Walls, Corners, Doors, Windows, Tees, etc.)
   Object.keys(blocksByCat).forEach(categoryName => {
-    // 1) A wrapper for the entire section
+    // 1) A wrapper for the entire collapsible section
     const sectionDiv = document.createElement('div');
     sectionDiv.classList.add('collapsible-section');
 
     // 2) The collapsible header
     const header = document.createElement('h3');
-    header.classList.add('collapsible-header');
-    // We'll also add a "collapsible" class for the pseudo-element approach
-    header.classList.add('collapsible');
-    // Indicate it's collapsed by default
+    header.classList.add('collapsible-header', 'collapsible');
     header.dataset.collapsed = 'true';
+    header.textContent = categoryName;
 
-    header.textContent = categoryName; // e.g. "Walls"
-
-    // Toggling logic on header click
     header.addEventListener('click', () => {
       const isCollapsed = header.dataset.collapsed === 'true';
       if (isCollapsed) {
-        // Expand
         contentDiv.style.display = 'block';
         header.dataset.collapsed = 'false';
-        // If you want a separate .active class for the minus, do:
         header.classList.add('active');
       } else {
-        // Collapse
         contentDiv.style.display = 'none';
         header.dataset.collapsed = 'true';
         header.classList.remove('active');
@@ -162,23 +152,47 @@ function createCategorySections(blocksByCat) {
     contentDiv.classList.add('collapsible-content');
     contentDiv.style.display = 'none'; // collapsed by default
 
-    // 4) Inside, a .block-list container
+    // 4) The block-list container
     const blockListDiv = document.createElement('div');
     blockListDiv.classList.add('block-list');
 
-    // Populate blockListDiv with each block in this category
+    // 5) Populate blockList
     blocksByCat[categoryName].forEach(block => {
       const itemDiv = document.createElement('div');
-      itemDiv.classList.add('block-item');
-      itemDiv.textContent = block.name;
+      itemDiv.classList.add('block-item'); // We'll style this as a "card"
 
+      // If there's an image, add an <img> on the left
       if (block.previewImage) {
         const img = document.createElement('img');
         img.src = block.previewImage;
+        img.alt = block.name;
+        img.classList.add('block-img');
         itemDiv.appendChild(img);
       }
 
-      // drag & drop
+      // A container for text details
+      const detailsDiv = document.createElement('div');
+      detailsDiv.classList.add('block-details');
+
+      // Name in bigger text
+      const nameEl = document.createElement('div');
+      nameEl.classList.add('block-name');
+      nameEl.textContent = block.name || 'Unnamed Block';
+
+      detailsDiv.appendChild(nameEl);
+
+      // Price (if block has a cost)
+      if (block.cost != null) {
+        const priceEl = document.createElement('div');
+        priceEl.classList.add('block-price');
+        priceEl.textContent = `$${block.cost}`;
+        detailsDiv.appendChild(priceEl);
+      }
+
+
+      itemDiv.appendChild(detailsDiv);
+
+      // Drag & drop
       itemDiv.setAttribute('draggable', true);
       itemDiv.dataset.blockId = block.id;
       itemDiv.addEventListener('dragstart', (e) => {
@@ -188,17 +202,17 @@ function createCategorySections(blocksByCat) {
       blockListDiv.appendChild(itemDiv);
     });
 
-    // 5) Put block-list into contentDiv
     contentDiv.appendChild(blockListDiv);
 
-    // 6) Put the header & content into sectionDiv
+    // 6) Put the header & content into section
     sectionDiv.appendChild(header);
     sectionDiv.appendChild(contentDiv);
 
-    // 7) Add sectionDiv to #categoryContainer
+    // 7) Add to container
     container.appendChild(sectionDiv);
   });
 }
+
 
 // RIGHT-PANE DROP
 const rightPane = document.querySelector('.right-pane');
