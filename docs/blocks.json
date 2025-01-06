@@ -4,12 +4,12 @@
       "id": "wallblock2ft",
       "name": "2FT Wall Block",
       "cost": 750,
-      "geometryFile": "blocks/wallblock2ft.obj",
+      "geometryFile": "blocks/wall2ft.obj",
       "attachmentPoints": [
         {
           "position": {
             "x": 0.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -22,55 +22,29 @@
         {
           "position": {
             "x": 2.0,
-            "y": 2.25,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 1.0,
-            "y": 0.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 1.0,
             "y": 4.5,
             "z": -0.292
           },
           "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
             "x": 1.0,
             "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
             "z": 0.0
           },
           "isSnapped": false
         }
       ],
-      "previewImage": "images/wallblock2ft.png"
+      "previewImage": "images/wall2ft.png"
     },
     {
       "id": "wallblock4ft",
       "name": "4FT Wall Block",
       "cost": 1000,
-      "geometryFile": "blocks/wallblock4ft.obj",
+      "geometryFile": "blocks/wall4ft.obj",
       "attachmentPoints": [
         {
           "position": {
             "x": 0.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -83,7 +57,7 @@
         {
           "position": {
             "x": 4.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -92,46 +66,20 @@
             "z": 0.0
           },
           "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 2.0,
-            "y": 4.5,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 2.0,
-            "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
         }
       ],
-      "previewImage": "images/wallblock4ft.png"
+      "previewImage": "images/wall4ft.png"
     },
     {
       "id": "wallblock8ft",
       "name": "8FT Wall Block",
       "cost": 1250,
-      "geometryFile": "blocks/wallblock8ft.obj",
+      "geometryFile": "blocks/wall8ft.obj",
       "attachmentPoints": [
         {
           "position": {
             "x": 0.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -144,7 +92,7 @@
         {
           "position": {
             "x": 8.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -153,35 +101,9 @@
             "z": 0.0
           },
           "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 4.0,
-            "y": 4.5,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 4.0,
-            "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
         }
       ],
-      "previewImage": "images/wallblock8ft.png"
+      "previewImage": "images/wall8ft.png"
     }
   ],
   "Corners": [
@@ -189,12 +111,12 @@
       "id": "right2ftcorner",
       "name": "2FT Right Corner Block",
       "cost": 1000,
-      "geometryFile": "blocks/right2ftcorner.obj",
+      "geometryFile": "blocks/rightcorner2ft.obj",
       "attachmentPoints": [
         {
           "position": {
             "x": 2.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -207,7 +129,7 @@
         {
           "position": {
             "x": 0.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": -2.292
           },
           "vector": {
@@ -216,46 +138,20 @@
             "z": -1.0
           },
           "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.292,
-            "y": 4.5,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.292,
-            "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
         }
       ],
-      "previewImage": "images/right2ftcorner.png"
+      "previewImage": "images/rightcorner2ft.png"
     },
     {
       "id": "right4ftcorner",
       "name": "4FT Right Corner Block",
       "cost": 1500,
-      "geometryFile": "blocks/right4ftcorner.obj",
+      "geometryFile": "blocks/rightcorner4ft.obj",
       "attachmentPoints": [
         {
           "position": {
             "x": 4.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -268,7 +164,7 @@
         {
           "position": {
             "x": 0.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": -4.292
           },
           "vector": {
@@ -277,35 +173,9 @@
             "z": -1.0
           },
           "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.292,
-            "y": 4.5,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.292,
-            "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
         }
       ],
-      "previewImage": "images/right4ftcorner.png"
+      "previewImage": "images/rightcorner4ft.png"
     },
     {
       "id": "roundcorner2ft",
@@ -316,7 +186,7 @@
         {
           "position": {
             "x": 2.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -329,39 +199,13 @@
         {
           "position": {
             "x": 0.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": -2.292
           },
           "vector": {
             "x": 0.0,
             "y": 0.0,
             "z": -1.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.292,
-            "y": 4.5,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.292,
-            "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": 0.0
           },
           "isSnapped": false
         }
@@ -377,7 +221,7 @@
         {
           "position": {
             "x": 4.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -390,39 +234,13 @@
         {
           "position": {
             "x": 0.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": -4.292
           },
           "vector": {
             "x": 0.0,
             "y": 0.0,
             "z": -1.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.292,
-            "y": 4.5,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.292,
-            "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": 0.0
           },
           "isSnapped": false
         }
@@ -440,20 +258,7 @@
         {
           "position": {
             "x": 0.0,
-            "y": 2.25,
-            "z": -0.292
-          },
-          "vector": {
-            "x": -1.0,
-            "y": 0.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.0,
-            "y": 6.75,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -466,20 +271,7 @@
         {
           "position": {
             "x": 4.0,
-            "y": 2.25,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 1.0,
-            "y": 0.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 4.0,
-            "y": 6.75,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -501,20 +293,7 @@
         {
           "position": {
             "x": 0.0,
-            "y": 2.25,
-            "z": -0.292
-          },
-          "vector": {
-            "x": -1.0,
-            "y": 0.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 0.0,
-            "y": 6.75,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -527,20 +306,7 @@
         {
           "position": {
             "x": 8.0,
-            "y": 2.25,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 1.0,
-            "y": 0.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 8.0,
-            "y": 6.75,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -564,7 +330,7 @@
         {
           "position": {
             "x": -0.292,
-            "y": 2.25,
+            "y": 4.5,
             "z": 0.0
           },
           "vector": {
@@ -577,33 +343,7 @@
         {
           "position": {
             "x": -0.292,
-            "y": 6.75,
-            "z": 0.0
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": 1.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": -0.292,
-            "y": 2.25,
-            "z": -4.0
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": -1.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": -0.292,
-            "y": 6.75,
+            "y": 4.5,
             "z": -4.0
           },
           "vector": {
@@ -619,15 +359,15 @@
   ],
   "Tees": [
     {
-      "id": "teeblock1ft",
-      "name": "1FT Tee Block",
+      "id": "teeblock2ft",
+      "name": "2FT Tee Block",
       "cost": 750,
-      "geometryFile": "blocks/teeblock1ft.obj",
+      "geometryFile": "blocks/tee2ft.obj",
       "attachmentPoints": [
         {
           "position": {
             "x": 0.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -640,7 +380,7 @@
         {
           "position": {
             "x": 2.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -654,32 +394,6 @@
           "position": {
             "x": 1.0,
             "y": 4.5,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 1.0,
-            "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 1.0,
-            "y": 2.25,
             "z": -1.292
           },
           "vector": {
@@ -690,18 +404,18 @@
           "isSnapped": false
         }
       ],
-      "previewImage": "images/teeblock1ft.png"
+      "previewImage": "images/tee2ft.png"
     },
     {
-      "id": "teeblock2ft",
-      "name": "2FT Tee Block",
+      "id": "teeblock4ft",
+      "name": "4FT Tee Block",
       "cost": 1250,
-      "geometryFile": "blocks/teeblock2ft.obj",
+      "geometryFile": "blocks/tee4ft.obj",
       "attachmentPoints": [
         {
           "position": {
             "x": 0.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -714,7 +428,7 @@
         {
           "position": {
             "x": 4.0,
-            "y": 2.25,
+            "y": 4.5,
             "z": -0.292
           },
           "vector": {
@@ -728,32 +442,6 @@
           "position": {
             "x": 2.0,
             "y": 4.5,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": 1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 2.0,
-            "y": 0.0,
-            "z": -0.292
-          },
-          "vector": {
-            "x": 0.0,
-            "y": -1.0,
-            "z": 0.0
-          },
-          "isSnapped": false
-        },
-        {
-          "position": {
-            "x": 2.0,
-            "y": 2.25,
             "z": -2.292
           },
           "vector": {
@@ -764,7 +452,7 @@
           "isSnapped": false
         }
       ],
-      "previewImage": "images/teeblock2ft.png"
+      "previewImage": "images/tee4ft.png"
     }
   ]
 }
