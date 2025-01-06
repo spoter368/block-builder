@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <title>My 3D Block Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script type="module" crossorigin src="/block-builder/assets/index-kSUynxrX.js"></script>
-  <link rel="stylesheet" crossorigin href="/block-builder/assets/index-CwmXhmMx.css">
+  <script type="module" crossorigin src="/block-builder/assets/index-CuKpsfaR.js"></script>
+  <link rel="stylesheet" crossorigin href="/block-builder/assets/index-DSzWakmU.css">
 </head>
 
 <body>
@@ -45,10 +45,14 @@
       <h2>Save/Load</h2>
       <p class="description">Save house to clipboard</p>
       <div class="save-load-row">
-        <button id="saveSceneBtn">💾 Save</button>
+        <button id="saveSceneBtn" class="blueprint-button">💾 Save</button>
         <input id="loadSceneInput" placeholder="Load house:" />
-        <button id="loadSceneBtn">Load</button>
+        <button id="loadSceneBtn" class="blueprint-button">Load</button>
       </div>
+      <button id="exportBlueprintBtn" class="blueprint-button">
+        Save Blueprint 🏗️
+      </button>
+
 
       <h2>Blocks</h2>
       <div id="savePopup" class="popup">House copied to clipboard</div>

@@ -4,6 +4,14 @@
       "id": "wallblock2ft",
       "name": "2FT Wall Block",
       "cost": 750,
+      "blueprintName": "WL2",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 0.12,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/wall2ft.obj",
       "attachmentPoints": [
         {
@@ -39,6 +47,14 @@
       "id": "wallblock4ft",
       "name": "4FT Wall Block",
       "cost": 1000,
+      "blueprintName": "WL4",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 0.12,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/wall4ft.obj",
       "attachmentPoints": [
         {
@@ -74,6 +90,14 @@
       "id": "wallblock8ft",
       "name": "8FT Wall Block",
       "cost": 1250,
+      "blueprintName": "WL8",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 0.12,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/wall8ft.obj",
       "attachmentPoints": [
         {
@@ -111,6 +135,14 @@
       "id": "right2ftcorner",
       "name": "2FT Right Corner Block",
       "cost": 1000,
+      "blueprintName": "RTC2",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 0.12,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/rightcorner2ft.obj",
       "attachmentPoints": [
         {
@@ -146,6 +178,14 @@
       "id": "right4ftcorner",
       "name": "4FT Right Corner Block",
       "cost": 1500,
+      "blueprintName": "RTC4",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 0.12,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/rightcorner4ft.obj",
       "attachmentPoints": [
         {
@@ -181,6 +221,14 @@
       "id": "roundcorner2ft",
       "name": "2FT Round Corner Block",
       "cost": 1000,
+      "blueprintName": "RNC2",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 1.0,
+          "z": -1.85
+        },
+        "rotation": 45
+      },
       "geometryFile": "blocks/roundcorner2ft.obj",
       "attachmentPoints": [
         {
@@ -216,6 +264,14 @@
       "id": "roundcorner4ft",
       "name": "4FT Round Corner Block",
       "cost": 1500,
+      "blueprintName": "RNC4",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 1.8,
+          "z": -2.5
+        },
+        "rotation": 45
+      },
       "geometryFile": "blocks/roundcorner4ft.obj",
       "attachmentPoints": [
         {
@@ -253,6 +309,14 @@
       "id": "doorblock",
       "name": "Single Door Block",
       "cost": 700,
+      "blueprintName": "SD",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 1.7,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/doorblock.obj",
       "attachmentPoints": [
         {
@@ -288,6 +352,14 @@
       "id": "doubledoorblock",
       "name": "Double Door Block",
       "cost": 1200,
+      "blueprintName": "DD",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 0.12,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/doubledoorblock.obj",
       "attachmentPoints": [
         {
@@ -325,6 +397,14 @@
       "id": "windowblock",
       "name": "Window Block",
       "cost": 1000,
+      "blueprintName": "WN",
+      "blueprintNameOffset": {
+        "position": {
+          "x": -0.45,
+          "z": -2.3
+        },
+        "rotation": 90
+      },
       "geometryFile": "blocks/windowblock.obj",
       "attachmentPoints": [
         {
@@ -362,6 +442,14 @@
       "id": "teeblock2ft",
       "name": "2FT Tee Block",
       "cost": 750,
+      "blueprintName": "T2",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 0.12,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/tee2ft.obj",
       "attachmentPoints": [
         {
@@ -410,6 +498,14 @@
       "id": "teeblock4ft",
       "name": "4FT Tee Block",
       "cost": 1250,
+      "blueprintName": "T4",
+      "blueprintNameOffset": {
+        "position": {
+          "x": 0.12,
+          "z": -0.14
+        },
+        "rotation": 0
+      },
       "geometryFile": "blocks/tee4ft.obj",
       "attachmentPoints": [
         {
