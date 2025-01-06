@@ -1121,121 +1121,199 @@ function buildFlatRoof(widthX, depthZ) {
   return flatMesh;
 }
 
-async function exportBlueprintPNG() {
-  console.log("=== exportBlueprintPNG() with auto-scale, 1unit=60px, line width=5 ===");
+function drawThickBlueprintEdges2D(
+  ctx,
+  placedBlocks,
+  bbox,
+  pxPerUnit,
+  canvasWidth,
+  canvasHeight
+) {
+  // Expand bounding box by 10% => so there's extra margin around edges
+  // We do so by 5% on each side
+  const originalWidth = bbox.maxx - bbox.minx;
+  const originalHeight = bbox.maxz - bbox.minz;
 
-  // 1) bounding box from placed blocks
+  const marginFactor = 0.10; // 10% total
+  const expand = marginFactor / 2; // expand each side by 5%
+  const newMinX = bbox.minx - expand * originalWidth;
+  const newMaxX = bbox.maxx + expand * originalWidth;
+  const newMinZ = bbox.minz - expand * originalHeight;
+  const newMaxZ = bbox.maxz + expand * originalHeight;
+
+  const finalWidth = newMaxX - newMinX;
+  const finalHeight = newMaxZ - newMinZ;
+
+  // local helper: world (x,z) => canvas (px, py)
+  function worldToCanvas(x, z) {
+    const rx = x - newMinX; // how far from newMinX
+    const rz = z - newMinZ; // how far from newMinZ
+
+    // invert Z so minZ => top => y=0, maxZ => bottom => y= finalHeight
+    const px = rx * pxPerUnit;
+    const py = (finalHeight - rz) * pxPerUnit;
+    return { x: px, y: py };
+  }
+
+  // 1) For each block => gather child meshes => edges => transform => draw
+  placedBlocks.forEach((block, i) => {
+    // gather child meshes
+    const childMeshes = [];
+    block.traverse(child => {
+      if (child.isMesh && child.geometry) {
+        childMeshes.push(child);
+      }
+    });
+    if (childMeshes.length === 0) return;
+
+    childMeshes.forEach((mesh, mIndex) => {
+      // build EdgesGeometry => read position attribute
+      const edgeGeo = new THREE.EdgesGeometry(mesh.geometry);
+
+      // mesh transform
+      const meshWorldPos = mesh.getWorldPosition(new THREE.Vector3());
+      const meshWorldQuat = mesh.getWorldQuaternion(new THREE.Quaternion());
+      const meshWorldScale = mesh.getWorldScale(new THREE.Vector3());
+
+      const posAttr = edgeGeo.attributes.position;
+      if (!posAttr) return;
+
+      // step in pairs => each pair is an edge
+      for (let iPair = 0; iPair < posAttr.count; iPair += 2) {
+        const vA = new THREE.Vector3(
+          posAttr.getX(iPair),
+          posAttr.getY(iPair),
+          posAttr.getZ(iPair)
+        );
+        const vB = new THREE.Vector3(
+          posAttr.getX(iPair + 1),
+          posAttr.getY(iPair + 1),
+          posAttr.getZ(iPair + 1)
+        );
+
+        // local => scale => rotate => translate
+        vA.multiply(meshWorldScale);
+        vB.multiply(meshWorldScale);
+
+        vA.applyQuaternion(meshWorldQuat);
+        vB.applyQuaternion(meshWorldQuat);
+
+        vA.add(meshWorldPos);
+        vB.add(meshWorldPos);
+
+        // project to canvas
+        const cA = worldToCanvas(vA.x, vA.z);
+        const cB = worldToCanvas(vB.x, vB.z);
+
+        // draw with thick white lines
+        ctx.beginPath();
+        ctx.moveTo(cA.x, cA.y);
+        ctx.lineTo(cB.x, cB.y);
+        // set white + 5px each time
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 5;
+        ctx.stroke();
+      }
+    });
+  });
+
+  // 2) draw a 5px white border at 10px from outer edges
+  ctx.save();
+  const offset = 10;
+  const borderWidth = 5;
+  const usableW = canvasWidth - offset * 2;
+  const usableH = canvasHeight - offset * 2;
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = borderWidth;
+  ctx.strokeRect(offset, offset, usableW, usableH);
+  ctx.restore();
+
+  // 3) scale text => e.g. "60px = 1 unit"
+  ctx.save();
+  ctx.fillStyle = "white";
+  ctx.font = "24px sans-serif";
+  ctx.fillText(`${pxPerUnit}px = 1 unit`, offset + 15, offset + 30);
+  ctx.restore();
+}
+
+async function exportBlueprintPNG() {
+  console.log("=== exportBlueprintPNG() - thick lines with margin/border/scale ===");
+
+  // 1) bounding box => to define bounding region
   const bbox = getMeshBoundingBox();
   if (bbox.minx === Infinity) {
     alert("No blocks => cannot export blueprint.");
     return;
   }
-  console.log("Bounding box:", bbox);
 
-  // bounding box width/height in scene units
-  let sceneWidth = bbox.maxx - bbox.minx;
-  let sceneHeight = bbox.maxz - bbox.minz;
+  // compute scene dims
+  const sceneWidth = bbox.maxx - bbox.minx;
+  const sceneHeight = bbox.maxz - bbox.minz;
 
-  // If you want a small margin in the scene, add e.g. 10%:
+  // 10% margin => new bounding box is bigger => do in the draw function
+  // We'll keep the same approach for final px: (sceneWidth + marginFactor) * pxPerUnit
   const marginFactor = 0.1;
-  sceneWidth *= (1 + marginFactor);
-  sceneHeight *= (1 + marginFactor);
+  const finalWidth = sceneWidth * (1 + marginFactor);
+  const finalHeight = sceneHeight * (1 + marginFactor);
 
-  console.log(`Scene dims with margin => width=${sceneWidth}, height=${sceneHeight}`);
-
-  // convert to final image px => 1 unit = 60 px
-  // e.g. if sceneWidth=10 => final image width= 10 * 60 = 600 px
+  // 2) px scale => 60px / unit
   const pxPerUnit = 60;
-  const imageWidthPx = Math.ceil(sceneWidth * pxPerUnit);
-  const imageHeightPx = Math.ceil(sceneHeight * pxPerUnit);
+  const imageWidthPx = Math.ceil(finalWidth * pxPerUnit);
+  const imageHeightPx = Math.ceil(finalHeight * pxPerUnit);
 
-  console.log(`Final blueprint size => ${imageWidthPx} x ${imageHeightPx} px`);
+  console.log(`Blueprint final => ${imageWidthPx} x ${imageHeightPx} px. BBox=`, bbox);
 
-  // 2) create a hidden renderer
+  // 3) minimal 3D pass => solid blue background
   const blueprintRenderer = new THREE.WebGLRenderer({ antialias: true });
   blueprintRenderer.setSize(imageWidthPx, imageHeightPx);
-  // Solid blue background
-  blueprintRenderer.setClearColor(0x0000ff, 1);
+  blueprintRenderer.setClearColor(0x0000ff, 1); // solid blue
 
-  // 3) new scene for wireframe lines
+  // a trivial scene => no geometry
   const blueprintScene = new THREE.Scene();
+  // trivial camera
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 10);
+  camera.position.set(0, 5, 0);
+  camera.lookAt(0, 0, 0);
 
-  // gather placed blocks
-  console.log("Placing wireframe lines from placedBlocks...");
-  for (let i = 0; i < placedBlocks.length; i++) {
-    const original = placedBlocks[i];
-    console.log(`Block #${i} =>`, original);
-
-    // find ALL child meshes
-    const childMeshes = [];
-    original.traverse(child => {
-      if (child.isMesh && child.geometry) {
-        childMeshes.push(child);
-      }
-    });
-
-    if (childMeshes.length === 0) {
-      console.warn("No meshes found => skipping wireframe for block #", i);
-      continue;
-    }
-
-    // for each child mesh => edges
-    childMeshes.forEach((mesh, idx) => {
-      const geo = new THREE.EdgesGeometry(mesh.geometry);
-      // set line width=5 (may not show in many platforms)
-      const mat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 5 });
-      const lines = new THREE.LineSegments(geo, mat);
-
-      // copy world transform
-      lines.position.copy(mesh.getWorldPosition(new THREE.Vector3()));
-      lines.quaternion.copy(mesh.getWorldQuaternion(new THREE.Quaternion()));
-      lines.scale.copy(mesh.getWorldScale(new THREE.Vector3()));
-
-      blueprintScene.add(lines);
-      console.log(`Block #${i}, child #${idx} => edges added. name= ${mesh.name}`);
-    });
-  }
-
-  // 4) set up an orthographic camera that EXACTLY matches bounding box size
-  // We'll center it around the bounding box center => (cx, cz)
-  const cx = (bbox.minx + bbox.maxx) / 2;
-  const cz = (bbox.minz + bbox.maxz) / 2;
-
-  // halfW => half of sceneWidth, halfH => half of sceneHeight
-  const halfW = sceneWidth / 2;
-  const halfH = sceneHeight / 2;
-
-  // near/far => ensure we can see from top
-  const camera = new THREE.OrthographicCamera(
-    -halfW,  // left
-    +halfW,  // right
-    +halfH,  // top
-    -halfH,  // bottom
-    1,       // near
-    10000    // far
-  );
-  // place camera top-down at some large Y, e.g. y= 1000 or a bit more than maxy
-  // or do => camera.position.set(cx, 2000, cz);
-  camera.position.set(cx, 2000, cz);
-
-  // look down
-  camera.lookAt(cx, 0, cz);
-
-  console.log("Ortho camera => left/right=", -halfW, halfW, " top/bot=", halfH, -halfH);
-
-  // 5) render to hidden renderer
   blueprintRenderer.render(blueprintScene, camera);
 
-  // 6) export raw image
-  const rawData = blueprintRenderer.domElement.toDataURL("image/png");
-  console.log("Raw blueprint data length:", rawData.length);
+  // 4) read that pass => raw BG
+  const rawBG = blueprintRenderer.domElement.toDataURL("image/png");
+
+  // 5) final 2D canvas => draw thick lines + border + scale
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width = imageWidthPx;
+  finalCanvas.height = imageHeightPx;
+  const ctx = finalCanvas.getContext('2d');
+
+  // load the raw BG into an Image
+  const tempImg = new Image();
+  tempImg.src = rawBG;
+  await tempImg.decode();
+  // fill the final canvas
+  ctx.drawImage(tempImg, 0, 0);
+
+  // now draw thick edges in 2D
+  drawThickBlueprintEdges2D(
+    ctx,
+    placedBlocks,
+    bbox,
+    pxPerUnit,
+    imageWidthPx,
+    imageHeightPx
+  );
+
+  // 6) final => convert to png dataURL
+  const finalData = finalCanvas.toDataURL("image/png");
+  console.log("Final blueprint data length=", finalData.length);
 
   // 7) force download
   const link = document.createElement('a');
   link.download = "blueprint.png";
-  link.href = rawData;
+  link.href = finalData;
   link.click();
 
   console.log("=== exportBlueprintPNG() done ===");
 }
+
 
