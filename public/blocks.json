@@ -7,10 +7,10 @@
       "blueprintName": "WL2",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/wall2ft.obj",
       "attachmentPoints": [
@@ -50,10 +50,10 @@
       "blueprintName": "WL4",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/wall4ft.obj",
       "attachmentPoints": [
@@ -93,10 +93,10 @@
       "blueprintName": "WL8",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/wall8ft.obj",
       "attachmentPoints": [
@@ -138,10 +138,10 @@
       "blueprintName": "RTC2",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/rightcorner2ft.obj",
       "attachmentPoints": [
@@ -181,10 +181,10 @@
       "blueprintName": "RTC4",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/rightcorner4ft.obj",
       "attachmentPoints": [
@@ -224,10 +224,10 @@
       "blueprintName": "RNC2",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/roundcorner2ft.obj",
       "attachmentPoints": [
@@ -267,10 +267,10 @@
       "blueprintName": "RNC4",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/roundcorner4ft.obj",
       "attachmentPoints": [
@@ -312,10 +312,10 @@
       "blueprintName": "SD",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/doorblock.obj",
       "attachmentPoints": [
@@ -355,10 +355,10 @@
       "blueprintName": "DD",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/doubledoorblock.obj",
       "attachmentPoints": [
@@ -400,10 +400,10 @@
       "blueprintName": "WN",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/windowblock.obj",
       "attachmentPoints": [
@@ -445,10 +445,10 @@
       "blueprintName": "T2",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/tee2ft.obj",
       "attachmentPoints": [
@@ -501,10 +501,10 @@
       "blueprintName": "T4",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.292,
-          "z": 0.0
+          "x": 1.0,
+          "z": 4.0
         },
-        "rotation": 90
+        "rotation": 0
       },
       "geometryFile": "blocks/tee4ft.obj",
       "attachmentPoints": [

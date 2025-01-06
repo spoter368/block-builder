@@ -298,6 +298,8 @@ function createBlockInScene(blockData, e) {
       objRoot.userData.blockId = blockData.id;
       objRoot.userData.blockName = blockData.name;
       objRoot.userData.cost = blockData.cost || 0;
+      objRoot.userData.blueprintName = blockData.blueprintName;
+      objRoot.userData.blueprintNameOffset = blockData.blueprintNameOffset;
 
       // Build attachmentPoints
       if (Array.isArray(blockData.attachmentPoints)) {
@@ -1129,34 +1131,42 @@ function drawThickBlueprintEdges2D(
   canvasWidth,
   canvasHeight
 ) {
-  // Expand bounding box by 10% => so there's extra margin around edges
-  // We do so by 5% on each side
+  console.log("=== drawThickBlueprintEdges2D START ===");
+
+  // Expand bounding box by 10% => so there's extra margin
   const originalWidth = bbox.maxx - bbox.minx;
   const originalHeight = bbox.maxz - bbox.minz;
 
-  const marginFactor = 0.10; // 10% total
-  const expand = marginFactor / 2; // expand each side by 5%
-  const newMinX = bbox.minx - expand * originalWidth;
-  const newMaxX = bbox.maxx + expand * originalWidth;
-  const newMinZ = bbox.minz - expand * originalHeight;
-  const newMaxZ = bbox.maxz + expand * originalHeight;
+  const marginFactor = 0.1; // 10% total expansion
+  const expandSide = marginFactor / 2;
+  const newMinX = bbox.minx - expandSide * originalWidth;
+  const newMaxX = bbox.maxx + expandSide * originalWidth;
+  const newMinZ = bbox.minz - expandSide * originalHeight;
+  const newMaxZ = bbox.maxz + expandSide * originalHeight;
 
   const finalWidth = newMaxX - newMinX;
   const finalHeight = newMaxZ - newMinZ;
 
-  // local helper: world (x,z) => canvas (px, py)
-  function worldToCanvas(x, z) {
-    const rx = x - newMinX; // how far from newMinX
-    const rz = z - newMinZ; // how far from newMinZ
+  console.log("Expanded BBox =>", {
+    newMinX, newMaxX, newMinZ, newMaxZ,
+    finalWidth, finalHeight
+  });
 
-    // invert Z so minZ => top => y=0, maxZ => bottom => y= finalHeight
+  // Helper to map a world X/Z to canvas coords
+  function worldToCanvas(x, z) {
+    const rx = x - newMinX;
+    const rz = z - newMinZ;
     const px = rx * pxPerUnit;
     const py = (finalHeight - rz) * pxPerUnit;
     return { x: px, y: py };
   }
 
-  // 1) For each block => gather child meshes => edges => transform => draw
-  placedBlocks.forEach((block, i) => {
+  console.log("Drawing thick lines for each placedBlock...");
+
+  // 1) Draw thick lines for every block
+  placedBlocks.forEach((block, iBlock) => {
+    console.log(`Block #${iBlock} name=(${block.userData?.blockName}) userData=`, block.userData);
+
     // gather child meshes
     const childMeshes = [];
     block.traverse(child => {
@@ -1164,21 +1174,26 @@ function drawThickBlueprintEdges2D(
         childMeshes.push(child);
       }
     });
-    if (childMeshes.length === 0) return;
+    if (childMeshes.length === 0) {
+      console.warn(`Block #${iBlock} => no meshes found, skipping lines.`);
+      return;
+    }
 
     childMeshes.forEach((mesh, mIndex) => {
-      // build EdgesGeometry => read position attribute
+      // build EdgesGeometry => read posAttr
       const edgeGeo = new THREE.EdgesGeometry(mesh.geometry);
+      const posAttr = edgeGeo.attributes.position;
+      if (!posAttr) {
+        console.warn(`Block #${iBlock}, mesh #${mIndex} => no position attribute, skipping.`);
+        return;
+      }
 
       // mesh transform
-      const meshWorldPos = mesh.getWorldPosition(new THREE.Vector3());
-      const meshWorldQuat = mesh.getWorldQuaternion(new THREE.Quaternion());
-      const meshWorldScale = mesh.getWorldScale(new THREE.Vector3());
+      const meshPos = mesh.getWorldPosition(new THREE.Vector3());
+      const meshQuat = mesh.getWorldQuaternion(new THREE.Quaternion());
+      const meshScale = mesh.getWorldScale(new THREE.Vector3());
 
-      const posAttr = edgeGeo.attributes.position;
-      if (!posAttr) return;
-
-      // step in pairs => each pair is an edge
+      // step in pairs => each is an edge
       for (let iPair = 0; iPair < posAttr.count; iPair += 2) {
         const vA = new THREE.Vector3(
           posAttr.getX(iPair),
@@ -1192,52 +1207,108 @@ function drawThickBlueprintEdges2D(
         );
 
         // local => scale => rotate => translate
-        vA.multiply(meshWorldScale);
-        vB.multiply(meshWorldScale);
+        vA.multiply(meshScale);
+        vB.multiply(meshScale);
 
-        vA.applyQuaternion(meshWorldQuat);
-        vB.applyQuaternion(meshWorldQuat);
+        vA.applyQuaternion(meshQuat);
+        vB.applyQuaternion(meshQuat);
 
-        vA.add(meshWorldPos);
-        vB.add(meshWorldPos);
+        vA.add(meshPos);
+        vB.add(meshPos);
 
-        // project to canvas
+        // map to canvas
         const cA = worldToCanvas(vA.x, vA.z);
         const cB = worldToCanvas(vB.x, vB.z);
 
-        // draw with thick white lines
+        // draw 5px white line
         ctx.beginPath();
         ctx.moveTo(cA.x, cA.y);
         ctx.lineTo(cB.x, cB.y);
-        // set white + 5px each time
         ctx.strokeStyle = "white";
         ctx.lineWidth = 5;
         ctx.stroke();
       }
     });
+
+    // 2) label the block if blueprintName exists
+    const blueprintName = block.userData?.blueprintName;
+    const offsetData = block.userData?.blueprintNameOffset;
+
+    console.log(`Block #${iBlock}: blueprintName= ${blueprintName} offsetData=`, offsetData);
+
+    if (blueprintName && offsetData && offsetData.position) {
+      // block's world transform
+      const blockPos = block.getWorldPosition(new THREE.Vector3());
+      const blockQuat = block.getWorldQuaternion(new THREE.Quaternion());
+
+      // local offset
+      let localOffset = new THREE.Vector3(
+        offsetData.position.x || 0,
+        0,
+        offsetData.position.z || 0
+      );
+
+      console.log(`Block #${iBlock} => localOffset before rotate=`, localOffset);
+
+      localOffset.applyQuaternion(blockQuat);
+
+      console.log(`Block #${iBlock} => localOffset after rotate=`, localOffset);
+
+      localOffset.add(blockPos);
+
+      console.log(`Block #${iBlock} => final world pos for label=`, localOffset);
+
+      // map to canvas
+      const cLabel = worldToCanvas(localOffset.x, localOffset.z);
+      console.log(`Block #${iBlock} => cLabel=`, cLabel);
+
+      // rotate text if offsetData.rotation
+      const labelRotationDeg = offsetData.rotation || 0;
+
+      ctx.save();
+      ctx.translate(cLabel.x, cLabel.y);
+
+      if (labelRotationDeg !== 0) {
+        const rad = (Math.PI / 180) * labelRotationDeg;
+        ctx.rotate(rad);
+      }
+
+      ctx.fillStyle = "white";
+      ctx.font = "24px sans-serif";
+      ctx.fillText(blueprintName, 0, 0);
+      ctx.restore();
+
+      console.log(`Block #${iBlock} => label drawn: "${blueprintName}" at cLabel=`, cLabel);
+    }
   });
 
-  // 2) draw a 5px white border at 10px from outer edges
-  ctx.save();
+  // 3) draw 5px white border, 10px from outside
+  console.log("Drawing border + scale text...");
   const offset = 10;
   const borderWidth = 5;
   const usableW = canvasWidth - offset * 2;
   const usableH = canvasHeight - offset * 2;
+
+  ctx.save();
   ctx.strokeStyle = "white";
   ctx.lineWidth = borderWidth;
   ctx.strokeRect(offset, offset, usableW, usableH);
   ctx.restore();
 
-  // 3) scale text => e.g. "60px = 1 unit"
+  // 4) scale text => "60px = 1 unit"
   ctx.save();
   ctx.fillStyle = "white";
   ctx.font = "24px sans-serif";
   ctx.fillText(`${pxPerUnit}px = 1 unit`, offset + 15, offset + 30);
   ctx.restore();
+
+  console.log("=== drawThickBlueprintEdges2D END ===");
 }
 
+
+
 async function exportBlueprintPNG() {
-  console.log("=== exportBlueprintPNG() - thick lines with margin/border/scale ===");
+  console.log("=== exportBlueprintPNG() - thick lines, margin, border, scale, block labels ===");
 
   // 1) bounding box => to define bounding region
   const bbox = getMeshBoundingBox();
@@ -1245,55 +1316,53 @@ async function exportBlueprintPNG() {
     alert("No blocks => cannot export blueprint.");
     return;
   }
+  console.log("Bounding box:", bbox);
 
-  // compute scene dims
+  // bounding box size
   const sceneWidth = bbox.maxx - bbox.minx;
   const sceneHeight = bbox.maxz - bbox.minz;
 
-  // 10% margin => new bounding box is bigger => do in the draw function
-  // We'll keep the same approach for final px: (sceneWidth + marginFactor) * pxPerUnit
+  // We'll do the margin logic in drawThickBlueprintEdges2D, but we do it here 
+  // to figure out final canvas size
   const marginFactor = 0.1;
   const finalWidth = sceneWidth * (1 + marginFactor);
   const finalHeight = sceneHeight * (1 + marginFactor);
 
-  // 2) px scale => 60px / unit
+  // 1 unit => 60 px
   const pxPerUnit = 60;
   const imageWidthPx = Math.ceil(finalWidth * pxPerUnit);
   const imageHeightPx = Math.ceil(finalHeight * pxPerUnit);
 
-  console.log(`Blueprint final => ${imageWidthPx} x ${imageHeightPx} px. BBox=`, bbox);
+  console.log(`Blueprint => ${imageWidthPx} x ${imageHeightPx} px`);
 
-  // 3) minimal 3D pass => solid blue background
+  // 2) minimal 3D pass => solid blue background
   const blueprintRenderer = new THREE.WebGLRenderer({ antialias: true });
   blueprintRenderer.setSize(imageWidthPx, imageHeightPx);
   blueprintRenderer.setClearColor(0x0000ff, 1); // solid blue
 
-  // a trivial scene => no geometry
   const blueprintScene = new THREE.Scene();
-  // trivial camera
+  // trivial camera => to produce a color fill
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 10);
   camera.position.set(0, 5, 0);
   camera.lookAt(0, 0, 0);
-
   blueprintRenderer.render(blueprintScene, camera);
 
-  // 4) read that pass => raw BG
+  // raw BG
   const rawBG = blueprintRenderer.domElement.toDataURL("image/png");
 
-  // 5) final 2D canvas => draw thick lines + border + scale
+  // 3) final 2D canvas => draw thick lines, border, scale, labels
   const finalCanvas = document.createElement('canvas');
   finalCanvas.width = imageWidthPx;
   finalCanvas.height = imageHeightPx;
   const ctx = finalCanvas.getContext('2d');
 
-  // load the raw BG into an Image
+  // load the BG
   const tempImg = new Image();
   tempImg.src = rawBG;
   await tempImg.decode();
-  // fill the final canvas
   ctx.drawImage(tempImg, 0, 0);
 
-  // now draw thick edges in 2D
+  // now call drawThickBlueprintEdges2D => draws edges, border, scale text, block labels
   drawThickBlueprintEdges2D(
     ctx,
     placedBlocks,
@@ -1303,11 +1372,11 @@ async function exportBlueprintPNG() {
     imageHeightPx
   );
 
-  // 6) final => convert to png dataURL
+  // 4) final => convert to dataURL
   const finalData = finalCanvas.toDataURL("image/png");
   console.log("Final blueprint data length=", finalData.length);
 
-  // 7) force download
+  // 5) force download
   const link = document.createElement('a');
   link.download = "blueprint.png";
   link.href = finalData;
@@ -1315,5 +1384,4 @@ async function exportBlueprintPNG() {
 
   console.log("=== exportBlueprintPNG() done ===");
 }
-
 
