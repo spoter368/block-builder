@@ -78,6 +78,70 @@ h2 {
   /* above other elements */
 }
 
+/* Logo at the top */
+.site-logo {
+  display: block;
+  max-width: 120px;
+  /* or choose whatever size works */
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+/* The overall site description container */
+.site-description {
+  background-color: #f9f9f9;
+  /* light grey/white hybrid */
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-family: sans-serif;
+  /* or your site’s default */
+}
+
+/* A small style for the headings in .site-description */
+.site-description h2 {
+  margin-top: 0;
+  color: #cc0000;
+  /* a red accent for the heading */
+  font-family: 'Helvetica', Arial, sans-serif;
+}
+
+/* Paragraphs & text in .site-description */
+.site-description p {
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+/* The bullet list for advantages */
+.site-description ul {
+  margin-left: 1rem;
+  margin-bottom: 0.75rem;
+  color: #222;
+}
+
+/* Each list item */
+.site-description ul li {
+  margin-bottom: 0.5rem;
+}
+
+/* Keycap style for R, Shift+R, Delete, etc. */
+.keycap {
+  display: inline-block;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.9rem;
+  margin: 0.1rem 0.1rem;
+  color: #000;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1) inset;
+  font-family: 'Courier New', monospace;
+  vertical-align: middle;
+}
+
+
 .save-load-row {
   display: flex;
   gap: 8px;
@@ -181,6 +245,10 @@ h2 {
 
 .collapsible.active:after {
   content: '\2796';
+}
+
+.roof-header {
+  margin-top: 1rem;
 }
 
 .roof-grid {
