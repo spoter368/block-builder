@@ -26,6 +26,11 @@ const OFFSET_RATIO = 0.7;       // 70% for the bigger half, 30% for smaller half
 const slopeDeg = 14.04;         // 3/12 slope in degrees
 const slopeAngle = slopeDeg * Math.PI / 180; // slope in radians
 
+// Blueprint constants
+const BLUEPRINT_WIREFRAME_WIDTH = 5; // px line thickness for the block outlines
+const BLUEPRINT_SCALE_PX_PER_UNIT = 60; // 60px = 1 unit in the scene
+
+
 // For showing all un-snapped attachment points in the scene
 let sceneAttachmentHelpers = new THREE.Group();
 sceneAttachmentHelpers.name = 'sceneAttachmentHelpers';
@@ -34,7 +39,7 @@ sceneAttachmentHelpers.name = 'sceneAttachmentHelpers';
 initScene();
 loadBlocks();
 initRoofRadios();
-
+initBlueprintExport();
 
 // 1) SCENE SETUP
 function initScene() {
@@ -213,6 +218,13 @@ function createCategorySections(blocksByCat) {
   });
 }
 
+function initBlueprintExport() {
+  const btn = document.getElementById('exportBlueprintBtn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    exportBlueprintPNG();
+  });
+}
 
 // RIGHT-PANE DROP
 const rightPane = document.querySelector('.right-pane');
@@ -1108,3 +1120,122 @@ function buildFlatRoof(widthX, depthZ) {
   addEdgeOutline(flatMesh);
   return flatMesh;
 }
+
+async function exportBlueprintPNG() {
+  console.log("=== exportBlueprintPNG() with auto-scale, 1unit=60px, line width=5 ===");
+
+  // 1) bounding box from placed blocks
+  const bbox = getMeshBoundingBox();
+  if (bbox.minx === Infinity) {
+    alert("No blocks => cannot export blueprint.");
+    return;
+  }
+  console.log("Bounding box:", bbox);
+
+  // bounding box width/height in scene units
+  let sceneWidth = bbox.maxx - bbox.minx;
+  let sceneHeight = bbox.maxz - bbox.minz;
+
+  // If you want a small margin in the scene, add e.g. 10%:
+  const marginFactor = 0.1;
+  sceneWidth *= (1 + marginFactor);
+  sceneHeight *= (1 + marginFactor);
+
+  console.log(`Scene dims with margin => width=${sceneWidth}, height=${sceneHeight}`);
+
+  // convert to final image px => 1 unit = 60 px
+  // e.g. if sceneWidth=10 => final image width= 10 * 60 = 600 px
+  const pxPerUnit = 60;
+  const imageWidthPx = Math.ceil(sceneWidth * pxPerUnit);
+  const imageHeightPx = Math.ceil(sceneHeight * pxPerUnit);
+
+  console.log(`Final blueprint size => ${imageWidthPx} x ${imageHeightPx} px`);
+
+  // 2) create a hidden renderer
+  const blueprintRenderer = new THREE.WebGLRenderer({ antialias: true });
+  blueprintRenderer.setSize(imageWidthPx, imageHeightPx);
+  // Solid blue background
+  blueprintRenderer.setClearColor(0x0000ff, 1);
+
+  // 3) new scene for wireframe lines
+  const blueprintScene = new THREE.Scene();
+
+  // gather placed blocks
+  console.log("Placing wireframe lines from placedBlocks...");
+  for (let i = 0; i < placedBlocks.length; i++) {
+    const original = placedBlocks[i];
+    console.log(`Block #${i} =>`, original);
+
+    // find ALL child meshes
+    const childMeshes = [];
+    original.traverse(child => {
+      if (child.isMesh && child.geometry) {
+        childMeshes.push(child);
+      }
+    });
+
+    if (childMeshes.length === 0) {
+      console.warn("No meshes found => skipping wireframe for block #", i);
+      continue;
+    }
+
+    // for each child mesh => edges
+    childMeshes.forEach((mesh, idx) => {
+      const geo = new THREE.EdgesGeometry(mesh.geometry);
+      // set line width=5 (may not show in many platforms)
+      const mat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 5 });
+      const lines = new THREE.LineSegments(geo, mat);
+
+      // copy world transform
+      lines.position.copy(mesh.getWorldPosition(new THREE.Vector3()));
+      lines.quaternion.copy(mesh.getWorldQuaternion(new THREE.Quaternion()));
+      lines.scale.copy(mesh.getWorldScale(new THREE.Vector3()));
+
+      blueprintScene.add(lines);
+      console.log(`Block #${i}, child #${idx} => edges added. name= ${mesh.name}`);
+    });
+  }
+
+  // 4) set up an orthographic camera that EXACTLY matches bounding box size
+  // We'll center it around the bounding box center => (cx, cz)
+  const cx = (bbox.minx + bbox.maxx) / 2;
+  const cz = (bbox.minz + bbox.maxz) / 2;
+
+  // halfW => half of sceneWidth, halfH => half of sceneHeight
+  const halfW = sceneWidth / 2;
+  const halfH = sceneHeight / 2;
+
+  // near/far => ensure we can see from top
+  const camera = new THREE.OrthographicCamera(
+    -halfW,  // left
+    +halfW,  // right
+    +halfH,  // top
+    -halfH,  // bottom
+    1,       // near
+    10000    // far
+  );
+  // place camera top-down at some large Y, e.g. y= 1000 or a bit more than maxy
+  // or do => camera.position.set(cx, 2000, cz);
+  camera.position.set(cx, 2000, cz);
+
+  // look down
+  camera.lookAt(cx, 0, cz);
+
+  console.log("Ortho camera => left/right=", -halfW, halfW, " top/bot=", halfH, -halfH);
+
+  // 5) render to hidden renderer
+  blueprintRenderer.render(blueprintScene, camera);
+
+  // 6) export raw image
+  const rawData = blueprintRenderer.domElement.toDataURL("image/png");
+  console.log("Raw blueprint data length:", rawData.length);
+
+  // 7) force download
+  const link = document.createElement('a');
+  link.download = "blueprint.png";
+  link.href = rawData;
+  link.click();
+
+  console.log("=== exportBlueprintPNG() done ===");
+}
+
