@@ -653,6 +653,8 @@ function serializeScene() {
     const blockId = block.userData.blockId;
     const blockName = block.userData.blockName;
     const cost = block.userData.cost || 0;
+    const blueprintName = block.userData.blueprintName;
+    const blueprintNameOffset = block.userData.blueprintNameOffset;
 
     const pos = block.position.clone();
     const quat = block.quaternion.clone();
@@ -671,6 +673,8 @@ function serializeScene() {
       blockId,
       blockName,
       cost,
+      blueprintName,
+      blueprintNameOffset,
       position: { x: pos.x, y: pos.y, z: pos.z },
       rotation: { x: euler.x, y: euler.y, z: euler.z },
       attachmentPoints: apData
@@ -798,6 +802,8 @@ async function recreateBlockFromData(blockInfo) {
     objRoot.userData.blockId = blockInfo.blockId;
     objRoot.userData.blockName = blockInfo.blockName;
     objRoot.userData.cost = blockInfo.cost;
+    objRoot.userData.blueprintName = blockInfo.blueprintName;
+    objRoot.userData.blueprintNameOffset = blockInfo.blueprintNameOffset;
     objRoot.userData.attachmentPoints = (blockInfo.attachmentPoints || []).map(ap => {
       return {
         position: new THREE.Vector3(ap.position.x, ap.position.y, ap.position.z),
@@ -1153,11 +1159,12 @@ function drawThickBlueprintEdges2D(
   });
 
   // Helper to map a world X/Z to canvas coords
+  // so bigger z => bigger y => as if from positive Y looking down
   function worldToCanvas(x, z) {
     const rx = x - newMinX;
     const rz = z - newMinZ;
     const px = rx * pxPerUnit;
-    const py = (finalHeight - rz) * pxPerUnit;
+    const py = rz * pxPerUnit; // <== changed so bigger z => bigger y
     return { x: px, y: py };
   }
 
@@ -1322,8 +1329,7 @@ async function exportBlueprintPNG() {
   const sceneWidth = bbox.maxx - bbox.minx;
   const sceneHeight = bbox.maxz - bbox.minz;
 
-  // We'll do the margin logic in drawThickBlueprintEdges2D, but we do it here 
-  // to figure out final canvas size
+  // We'll do margin logic in drawThickBlueprintEdges2D, but approximate final dimension:
   const marginFactor = 0.1;
   const finalWidth = sceneWidth * (1 + marginFactor);
   const finalHeight = sceneHeight * (1 + marginFactor);
@@ -1333,7 +1339,7 @@ async function exportBlueprintPNG() {
   const imageWidthPx = Math.ceil(finalWidth * pxPerUnit);
   const imageHeightPx = Math.ceil(finalHeight * pxPerUnit);
 
-  console.log(`Blueprint => ${imageWidthPx} x ${imageHeightPx} px`);
+  console.log(`Blueprint => ${imageWidthPx} x ${imageHeightPx} px. BBox=`, bbox);
 
   // 2) minimal 3D pass => solid blue background
   const blueprintRenderer = new THREE.WebGLRenderer({ antialias: true });
@@ -1341,7 +1347,7 @@ async function exportBlueprintPNG() {
   blueprintRenderer.setClearColor(0x0000ff, 1); // solid blue
 
   const blueprintScene = new THREE.Scene();
-  // trivial camera => to produce a color fill
+  // place the camera at y=+5, looking downward
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 10);
   camera.position.set(0, 5, 0);
   camera.lookAt(0, 0, 0);
