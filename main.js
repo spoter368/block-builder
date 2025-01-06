@@ -1302,12 +1302,42 @@ function drawThickBlueprintEdges2D(
   ctx.strokeRect(offset, offset, usableW, usableH);
   ctx.restore();
 
-  // 4) scale text => "60px = 1 unit"
+  console.log("Drawing dimension line => 60px, shape of 'I' with label '= 1FT'");
+
+  // We'll draw a line 60 px long, with vertical strokes at each end, near top-left
+  // Suppose we do it below the border offset area
   ctx.save();
+
+  // dimension line start
+  const dimX = offset + 15;
+  const dimY = offset + 30; // a bit lower than the border
+  const dimLength = 60;
+
+  // stroke color, thickness
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 5;
+
+  // shape of capital I => vertical line at each end, plus horizontal
+  ctx.beginPath();
+  // left vertical
+  ctx.moveTo(dimX, dimY - 5);
+  ctx.lineTo(dimX, dimY + 5);
+  // horizontal
+  ctx.moveTo(dimX, dimY);
+  ctx.lineTo(dimX + dimLength, dimY);
+  // right vertical
+  ctx.moveTo(dimX + dimLength, dimY - 5);
+  ctx.lineTo(dimX + dimLength, dimY + 5);
+  ctx.stroke();
+
+  // text => "= 1FT"
   ctx.fillStyle = "white";
   ctx.font = "24px sans-serif";
-  ctx.fillText(`${pxPerUnit}px = 1 unit`, offset + 15, offset + 30);
+  // place it just to the right or above the line
+  ctx.fillText("= 1FT", dimX + dimLength + 10, dimY + 8);
+
   ctx.restore();
+
 
   console.log("=== drawThickBlueprintEdges2D END ===");
 }
