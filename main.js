@@ -291,7 +291,8 @@ function createBlockInScene(blockData, e) {
       setBlockAndOutlineColors(objRoot, 0xcd7837, 0x6f3101);
 
       // Scale from meters->feet
-      objRoot.scale.set(3.28084, 3.28084, 3.28084);
+      // For some reason, the y axis is disproportionately large, but idk why
+      objRoot.scale.set(3.28084, 2.45, 3.28084);
       objRoot.position.set(0, 0, 0);
 
       // userData
