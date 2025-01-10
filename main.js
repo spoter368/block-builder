@@ -77,7 +77,7 @@ function initScene() {
 
   // GRID HELPER: spans 50 units, with squares of 0.5 => 50 / 0.5 = 100 divisions
   const gridSize = 50;   // same size as plane
-  const divisions = 100; // each cell => 0.5
+  const divisions = 200; // each cell => 0.5
   const gridColor = 0x888888;
 
   const gridHelper = new THREE.GridHelper(gridSize, divisions, gridColor, gridColor);
@@ -486,9 +486,9 @@ function onKeyDown(event) {
   if (activeBlock) {
     if (event.key.toLowerCase() === 'r') {
       if (event.shiftKey) {
-        activeBlock.rotateY(-Math.PI / 2);
-      } else {
         activeBlock.rotateY(Math.PI / 2);
+      } else {
+        activeBlock.rotateY(-Math.PI / 2);
       }
       showAllUnsnappedAttachmentPoints();
     } else if (event.key === "Delete") {
@@ -537,8 +537,8 @@ function getFloorIntersection(event) {
     // Snap to 0.0 or 0.5 in x,z
     const point = intersects[0].point;
 
-    point.x = Math.round(point.x * 2) / 2;
-    point.z = Math.round(point.z * 2) / 2;
+    point.x = Math.round(point.x * 4) / 4;
+    point.z = Math.round(point.z * 4) / 4;
 
     intersects[0].point.copy(point);
     return intersects[0];
@@ -614,9 +614,9 @@ function handleSnapping(activeObj, mode) {
 
     // read the current position
     const pos = activeObj.position.clone();
-    // round to nearest .0/.5
-    pos.x = Math.round(pos.x * 2) / 2;
-    pos.z = Math.round(pos.z * 2) / 2;
+    // round to nearest .25
+    pos.x = Math.round(pos.x * 4) / 4;
+    pos.z = Math.round(pos.z * 4) / 4;
     activeObj.position.copy(pos);
 
     return; // no further block-block snapping needed
@@ -1171,7 +1171,6 @@ function drawThickBlueprintEdges2D(
 ) {
   console.log("=== drawThickBlueprintEdges2D START ===");
 
-  // Expand bounding box by 10% => so there's extra margin
   const originalWidth = bbox.maxx - bbox.minx;
   const originalHeight = bbox.maxz - bbox.minz;
 
@@ -1287,37 +1286,36 @@ function drawThickBlueprintEdges2D(
         offsetData.position.z || 0
       );
 
-      console.log(`Block #${iBlock} => localOffset before rotate=`, localOffset);
-
+      // Apply block's quaternion to offset, so we get the correct offset in world space.
       localOffset.applyQuaternion(blockQuat);
-
-      console.log(`Block #${iBlock} => localOffset after rotate=`, localOffset);
-
       localOffset.add(blockPos);
 
-      console.log(`Block #${iBlock} => final world pos for label=`, localOffset);
+      // Convert block's quaternion to an Euler => read Y rotation in degrees
+      const eul = new THREE.Euler().setFromQuaternion(blockQuat, 'XYZ');
+      const blockYDeg = THREE.MathUtils.radToDeg(eul.y);
 
-      // map to canvas
+      // The user’s offset rotation
+      const userOffsetDeg = offsetData.rotation || 0;
+
+      // Combined angle => e.g. block's Y orientation + user offset
+      const totalRotationDeg = blockYDeg + userOffsetDeg;
+
+      // Map the final offset to canvas
       const cLabel = worldToCanvas(localOffset.x, localOffset.z);
-      console.log(`Block #${iBlock} => cLabel=`, cLabel);
-
-      // rotate text if offsetData.rotation
-      const labelRotationDeg = offsetData.rotation || 0;
 
       ctx.save();
       ctx.translate(cLabel.x, cLabel.y);
 
-      if (labelRotationDeg !== 0) {
-        const rad = (Math.PI / 180) * labelRotationDeg;
-        ctx.rotate(rad);
-      }
+      // Convert degrees => radians
+      const totalRad = THREE.MathUtils.degToRad(totalRotationDeg);
+      ctx.rotate(totalRad);
 
       ctx.fillStyle = "white";
-      ctx.font = "24px sans-serif";
+      ctx.font = "18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.fillText(blueprintName, 0, 0);
       ctx.restore();
-
-      console.log(`Block #${iBlock} => label drawn: "${blueprintName}" at cLabel=`, cLabel);
     }
   });
 

@@ -7,8 +7,8 @@
       "blueprintName": "WL2",
       "blueprintNameOffset": {
         "position": {
-          "x": 0.12,
-          "z": -0.14
+          "x": 0.6,
+          "z": -0.25
         },
         "rotation": 0
       },
@@ -50,8 +50,8 @@
       "blueprintName": "WL4",
       "blueprintNameOffset": {
         "position": {
-          "x": 0.12,
-          "z": -0.14
+          "x": 0.6,
+          "z": -0.25
         },
         "rotation": 0
       },
@@ -93,8 +93,8 @@
       "blueprintName": "WL8",
       "blueprintNameOffset": {
         "position": {
-          "x": 0.12,
-          "z": -0.14
+          "x": 0.6,
+          "z": -0.25
         },
         "rotation": 0
       },
@@ -138,8 +138,8 @@
       "blueprintName": "RTC2",
       "blueprintNameOffset": {
         "position": {
-          "x": 0.12,
-          "z": -0.14
+          "x": 0.6,
+          "z": -0.25
         },
         "rotation": 0
       },
@@ -181,8 +181,8 @@
       "blueprintName": "RTC4",
       "blueprintNameOffset": {
         "position": {
-          "x": 0.12,
-          "z": -0.14
+          "x": 0.6,
+          "z": -0.25
         },
         "rotation": 0
       },
@@ -224,8 +224,8 @@
       "blueprintName": "RNC2",
       "blueprintNameOffset": {
         "position": {
-          "x": 1.0,
-          "z": -1.85
+          "x": 1.26,
+          "z": -1.26
         },
         "rotation": 45
       },
@@ -267,8 +267,8 @@
       "blueprintName": "RNC4",
       "blueprintNameOffset": {
         "position": {
-          "x": 1.8,
-          "z": -2.5
+          "x": 2.0,
+          "z": -2.0
         },
         "rotation": 45
       },
@@ -312,8 +312,8 @@
       "blueprintName": "SD",
       "blueprintNameOffset": {
         "position": {
-          "x": 1.7,
-          "z": -0.14
+          "x": 2.0,
+          "z": -0.25
         },
         "rotation": 0
       },
@@ -355,8 +355,8 @@
       "blueprintName": "DD",
       "blueprintNameOffset": {
         "position": {
-          "x": 0.12,
-          "z": -0.14
+          "x": 0.6,
+          "z": -0.25
         },
         "rotation": 0
       },
@@ -400,8 +400,8 @@
       "blueprintName": "WN",
       "blueprintNameOffset": {
         "position": {
-          "x": -0.45,
-          "z": -2.3
+          "x": -0.25,
+          "z": -2.0
         },
         "rotation": 90
       },
@@ -445,8 +445,8 @@
       "blueprintName": "T2",
       "blueprintNameOffset": {
         "position": {
-          "x": 0.12,
-          "z": -0.14
+          "x": 0.6,
+          "z": -0.25
         },
         "rotation": 0
       },
@@ -501,8 +501,8 @@
       "blueprintName": "T4",
       "blueprintNameOffset": {
         "position": {
-          "x": 0.12,
-          "z": -0.14
+          "x": 0.6,
+          "z": -0.25
         },
         "rotation": 0
       },
