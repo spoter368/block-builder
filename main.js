@@ -75,6 +75,17 @@ function initScene() {
   floorMesh.rotation.x = -Math.PI / 2;
   scene.add(floorMesh);
 
+  // GRID HELPER: spans 50 units, with squares of 0.5 => 50 / 0.5 = 100 divisions
+  const gridSize = 50;   // same size as plane
+  const divisions = 100; // each cell => 0.5
+  const gridColor = 0x888888;
+
+  const gridHelper = new THREE.GridHelper(gridSize, divisions, gridColor, gridColor);
+  // By default, GridHelper is drawn in XZ plane, so no rotation needed
+  // But we must ensure it's at y=0
+  gridHelper.position.y = 0;
+  scene.add(gridHelper);
+
   // Scene-level attachment group
   scene.add(sceneAttachmentHelpers);
 
@@ -523,10 +534,18 @@ function getFloorIntersection(event) {
   const objectsToCheck = [floorMesh, ...placedBlocks];
   const intersects = raycaster.intersectObjects(objectsToCheck, true);
   if (intersects.length > 0) {
+    // Snap to 0.0 or 0.5 in x,z
+    const point = intersects[0].point;
+
+    point.x = Math.round(point.x * 2) / 2;
+    point.z = Math.round(point.z * 2) / 2;
+
+    intersects[0].point.copy(point);
     return intersects[0];
   }
   return null;
 }
+
 
 function handleSnapping(activeObj, mode) {
   const activePoints = activeObj.userData.attachmentPoints || [];
@@ -588,8 +607,20 @@ function handleSnapping(activeObj, mode) {
     }
   }
 
-  // If no candidates, just return
-  if (candidates.length === 0) return;
+  if (candidates.length === 0) {
+    // chatgpt put code to snap to nearest 0.5 here
+    // We can just snap activeObj.position in x,z
+    console.log("No block-block snapping candidates => snapping to grid 0.0/0.5 in x,z.");
+
+    // read the current position
+    const pos = activeObj.position.clone();
+    // round to nearest .0/.5
+    pos.x = Math.round(pos.x * 2) / 2;
+    pos.z = Math.round(pos.z * 2) / 2;
+    activeObj.position.copy(pos);
+
+    return; // no further block-block snapping needed
+  }
 
   // If we are snapping, find the closest candidate to actually perform the "move"
   if (mode === 'snap') {
