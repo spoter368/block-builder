@@ -9,8 +9,12 @@ let floorMesh;
 let controls;
 let blocksData = [];
 let placedBlocks = [];
+let placedDimensions = []; // store all dimension lines
 
 let activeBlock = null;
+
+let dimensionPreviewGroup = null; // A temporary group for preview line + end bars + text
+let dimensionPreviewTextSprite = null; // For displaying the distance text
 
 let mouseDownPos = new THREE.Vector2();
 let mouseDownTime = 0;
@@ -26,23 +30,41 @@ const OFFSET_RATIO = 0.7;       // 70% for the bigger half, 30% for smaller half
 const slopeDeg = 14.04;         // 3/12 slope in degrees
 const slopeAngle = slopeDeg * Math.PI / 180; // slope in radians
 
-// Blueprint constants
-const BLUEPRINT_WIREFRAME_WIDTH = 5; // px line thickness for the block outlines
-const BLUEPRINT_SCALE_PX_PER_UNIT = 60; // 60px = 1 unit in the scene
-
-
 // For showing all un-snapped attachment points in the scene
 let sceneAttachmentHelpers = new THREE.Group();
 sceneAttachmentHelpers.name = 'sceneAttachmentHelpers';
+
+const DimensionState = {
+  INACTIVE: 'INACTIVE',     // not in dimension mode
+  PLACING_FIRST_POINT: 'PLACING_FIRST_POINT',
+  PLACING_SECOND_POINT: 'PLACING_SECOND_POINT',
+  DELETE_MODE: 'DELETE_MODE',
+};
+
+let dimensionManager = {
+  state: DimensionState.INACTIVE,
+  firstPoint: null,
+  previewGroup: null,
+};
+
+// Also store placed dimension groups
+let placedDimensions3D = []; // each item is a THREE.Group for the dimension line+bars+text
 
 // INIT
 initScene();
 loadBlocks();
 initRoofRadios();
 initBlueprintExport();
+initDimensions();
 
-// 1) SCENE SETUP
+/**
+ * Initializes the scene, camera, renderer, controls, lights, floor, grid, and event listeners.
+ * Sets up the main rendering loop via the animate() function.
+ * 
+ * @returns {void}
+ */
 function initScene() {
+
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xcccccc);
 
@@ -103,11 +125,22 @@ function initScene() {
   animate();
 }
 
+/**
+ * The main render loop, called on each animation frame.
+ * Renders the scene from the camera's perspective.
+ * 
+ * @returns {void}
+ */
 function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
 }
 
+/**
+ * Adjusts camera aspect ratio and renderer size when the window is resized.
+ * 
+ * @returns {void}
+ */
 function onWindowResize() {
   const w = window.innerWidth * 0.75;
   const h = window.innerHeight;
@@ -116,7 +149,13 @@ function onWindowResize() {
   renderer.setSize(w, h);
 }
 
-// 2) LOAD BLOCKS + LEFT PANE
+/**
+ * Fetches the blocks.json file and stores its data in the global blocksData array.
+ * Then calls createCategorySections to populate the UI with block categories.
+ * 
+ * @async
+ * @returns {Promise<void>} Resolves when the JSON file is loaded and categories are created.
+ */
 async function loadBlocks() {
   try {
     const res = await fetch('blocks.json');
@@ -128,8 +167,11 @@ async function loadBlocks() {
 }
 
 /**
- * Dynamically create collapsible sections for each category key,
- * each collapsed by default, with a plus/minus indicator in CSS.
+ * Dynamically creates collapsible sections for each category in blocksData.
+ * Within each section, creates draggable block "cards" using the provided block data.
+ * 
+ * @param {Object} blocksByCat An object whose keys are category names and values are arrays of block definitions.
+ * @returns {void}
  */
 function createCategorySections(blocksByCat) {
   const container = document.getElementById('categoryContainer');
@@ -229,6 +271,12 @@ function createCategorySections(blocksByCat) {
   });
 }
 
+/**
+ * Initializes the blueprint export button by adding a click event listener
+ * that triggers exportBlueprintPNG().
+ * 
+ * @returns {void}
+ */
 function initBlueprintExport() {
   const btn = document.getElementById('exportBlueprintBtn');
   if (!btn) return;
@@ -236,6 +284,18 @@ function initBlueprintExport() {
     exportBlueprintPNG();
   });
 }
+
+/**
+ * Initializes the "Add Dimension" button by adding a click event listener
+ * 
+ * @returns {void}
+ */
+function initDimensions() {
+  const btn = document.getElementById('addDimensionBtn');
+  if (!btn) return;
+  btn.addEventListener('click', onAddDimensionClicked);
+}
+
 
 // RIGHT-PANE DROP
 const rightPane = document.querySelector('.right-pane');
@@ -271,6 +331,15 @@ rightPane.addEventListener('drop', (e) => {
   createBlockInScene(foundBlock, e);
 });
 
+/**
+ * Sets the base color and outline color on a newly created or selected block.
+ * Recursively traverses all mesh children to apply materials and outlines.
+ * 
+ * @param {THREE.Object3D} block The parent object containing mesh children.
+ * @param {number} color The hexadecimal color (e.g., 0xcd7837) for the mesh material.
+ * @param {number} outlineColor The hexadecimal color for the edge outline (e.g., 0x000000).
+ * @returns {void}
+ */
 function setBlockAndOutlineColors(block, color, outlineColor) {
   // For each mesh child, apply normal material + edges
   block.traverse(child => {
@@ -287,7 +356,15 @@ function setBlockAndOutlineColors(block, color, outlineColor) {
   });
 }
 
-// 3) CREATE BLOCK IN SCENE
+/**
+ * Creates a block in the scene based on the given blockData. 
+ * Loads the OBJ file, applies color/outlines, and sets up attachment points.
+ * Allows the user to position the block with the mouse before final placement.
+ * 
+ * @param {Object} blockData An object containing block metadata (geometryFile, cost, name, etc.).
+ * @param {DragEvent} e The drop event used to position the block on the floor.
+ * @returns {void}
+ */
 function createBlockInScene(blockData, e) {
   // Remove old activeBlock if any
   if (activeBlock) {
@@ -350,9 +427,12 @@ function createBlockInScene(blockData, e) {
 }
 
 /**
- * Helper to add EdgesGeometry-based outline.
- * This creates a new LineSegments child named "edgesOutline"
- * so we can toggle it on/off easily.
+ * Adds an EdgesGeometry-based child line segments ("edgesOutline") to a mesh
+ * for a black outline effect.
+ * 
+ * @param {THREE.Mesh} mesh A Three.js mesh whose geometry will be used for the outline.
+ * @param {number} [color=0x000000] The hexadecimal color to use for the outline.
+ * @returns {void}
  */
 function addEdgeOutline(mesh, color = 0x000000) {
   if (!mesh.geometry) return;
@@ -372,7 +452,12 @@ function addEdgeOutline(mesh, color = 0x000000) {
   mesh.add(outline);
 }
 
-// SHOW ALL UNSNAPPED POINTS
+/**
+ * Clears and re-adds visual helpers (red spheres + green arrows) for all
+ * un-snapped attachment points on placed blocks and any currently active block.
+ * 
+ * @returns {void}
+ */
 function showAllUnsnappedAttachmentPoints() {
   sceneAttachmentHelpers.clear();
 
@@ -383,7 +468,12 @@ function showAllUnsnappedAttachmentPoints() {
 }
 
 /**
- * Red sphere + green arrow for each un-snapped attachment
+ * For a given block, adds red spheres and green arrow helpers at each un-snapped attachment point.
+ * These helpers are used for visualizing where snapping could occur.
+ * 
+ * @param {THREE.Object3D} blockObj The block whose attachment points will be displayed.
+ * @param {THREE.Group} containerGroup A group to which the helper objects are added.
+ * @returns {void}
  */
 function addAttachmentHelpersForBlock(blockObj, containerGroup) {
   const attPoints = blockObj.userData.attachmentPoints || [];
@@ -410,17 +500,55 @@ function addAttachmentHelpersForBlock(blockObj, containerGroup) {
   });
 }
 
-// 4) MOUSE / KEY
+/**
+ * Called on mouse move when an activeBlock exists (the user is dragging a block).
+ * Updates the block's position to follow the mouse intersection on the floor.
+ * Also re-shows un-snapped attachment point helpers.
+ * 
+ * @param {MouseEvent} event The mousemove event.
+ * @returns {void}
+ */
 function onMouseMove(event) {
-  if (!activeBlock) return;
-
-  const intersection = getFloorIntersection(event);
-  if (intersection) {
-    activeBlock.position.copy(intersection.point);
+  // dimension manager logic first
+  if (dimensionManager.state === DimensionState.PLACING_SECOND_POINT) {
+    handleDimensionMouseMove(event);
+    return;
   }
-  showAllUnsnappedAttachmentPoints();
+
+  // If an active block is being dragged:
+  if (activeBlock) {
+    const intersection = getFloorIntersection(event); // block logic includes floor+blocks
+    if (intersection) {
+      activeBlock.position.copy(intersection.point);
+    }
+    showAllUnsnappedAttachmentPoints();
+  }
 }
 
+
+function handleDimensionMouseMove(event) {
+  // If we’re not placing a dimension, do nothing
+  if (dimensionManager.state !== DimensionState.PLACING_SECOND_POINT) return;
+
+  if (!dimensionManager.firstPoint || !dimensionManager.previewGroup) return;
+
+  // user is dragging the second point
+  const floorHit = getFloorOnlyIntersection(event);
+  if (!floorHit) return;
+
+  // Update the preview group
+  updateDimension3DPreview(dimensionManager.previewGroup, dimensionManager.firstPoint, floorHit.point);
+}
+
+
+
+/**
+ * Performs a raycast against all meshes in placedBlocks to see if the user
+ * clicked on (or near) a particular block.
+ * 
+ * @param {MouseEvent} e The mousedown/mouseup event.
+ * @returns {THREE.Object3D|null} Returns the parent object of the first intersected mesh, or null if none.
+ */
 function raycastToCheckForBlock(e) {
   const rect = renderer.domElement.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -442,46 +570,126 @@ function raycastToCheckForBlock(e) {
 
 let potentialTargetBlock = null;
 
+/**
+ * Handles logic when the user presses the mouse down:
+ * - Records the position/time to differentiate a click from a drag.
+ * - If dimension mode is active and there's no activeBlock, sets the first dimension point.
+ * 
+ * @param {MouseEvent} event The mousedown event.
+ * @returns {void}
+ */
 function onMouseDown(event) {
   mouseDownPos.set(event.clientX, event.clientY);
   mouseDownTime = performance.now();
+  potentialTargetBlock = null;
+  console.log("mousedown detected")
+
+  // 1) If dimension manager is not inactive or we are in dimension delete mode:
+  if (dimensionManager.state != DimensionState.INACTIVE) {
+    // Let dimension manager handle the click
+    handleDimensionMouseDown(event);
+    return;
+  }
+
+  // 2) Otherwise, we are in block mode => existing logic
   if (!activeBlock) {
-    potentialTargetBlock = raycastToCheckForBlock(event)
+    potentialTargetBlock = raycastToCheckForBlock(event);
   }
 }
 
+
+function handleDimensionMouseDown(event) {
+  console.log("dimensionmousedown handler called")
+  switch (dimensionManager.state) {
+    case DimensionState.PLACING_FIRST_POINT:
+      const hit1 = getFloorOnlyIntersection(event);
+      if (!hit1) return;
+      dimensionManager.firstPoint = hit1.point.clone();
+      dimensionManager.state = DimensionState.PLACING_SECOND_POINT;
+      // create a preview group right away
+      dimensionManager.previewGroup = createDimension3DPreview(dimensionManager.firstPoint, dimensionManager.firstPoint);
+      scene.add(dimensionManager.previewGroup);
+      break;
+
+    case DimensionState.PLACING_SECOND_POINT:
+      const hit2 = getFloorOnlyIntersection(event);
+      if (!hit2) return;
+      // finalize
+      finalizeDimension(dimensionManager.firstPoint, hit2.point);
+      // reset state
+      dimensionManager.firstPoint = null;
+      dimensionManager.previewGroup = null;
+      dimensionManager.state = DimensionState.INACTIVE;
+      document.body.style.cursor = "auto";
+      break;
+
+    case DimensionState.DELETE_MODE:
+      // Attempt to delete a dimension
+      deleteDimensionAtMouse(event);
+      // remain in delete mode or revert to INACTIVE, your choice
+      // dimensionManager.state = DimensionState.INACTIVE;
+      // document.body.style.cursor = "auto";
+      break;
+
+    default:
+      // do nothing
+      break;
+  }
+}
+
+/**
+ * Handles logic when the user releases the mouse button:
+ * - Checks click distance/time to see if it was a simple click.
+ * - If an activeBlock is present, snaps it in place and adds to placedBlocks.
+ * - If no activeBlock, attempts to pick up a block if the click was on one.
+ * 
+ * @param {MouseEvent} event The mouseup event.
+ * @returns {void}
+ */
 function onMouseUp(event) {
   const dist = Math.hypot(event.clientX - mouseDownPos.x, event.clientY - mouseDownPos.y);
   const timeDiff = performance.now() - mouseDownTime;
 
-  // user clicked quickly and did not move mouse
-  if (dist < 5 && timeDiff < 1000) {
-    if (activeBlock) {
-      // user is attempting to place an active block
-      handleSnapping(activeBlock, 'snap');
-      placedBlocks.push(activeBlock);
-      setBlockAndOutlineColors(activeBlock, 0xffffff, 0x000000);
-      updateCostCalculator();
-      showAllUnsnappedAttachmentPoints();
+  // For dimension manager, we do nothing special here.
+  // The dimension manager logic is already in handleDimensionMouseDown() for the moment.
 
-      activeBlock = null;
-    } else {
-      // user might be attempting to pick up a block
-      let tmp = raycastToCheckForBlock(event);
-      // if the block they released their mouse over was the same as the one they placed their mouse down over:
-      if (tmp?.uuid && tmp.uuid === potentialTargetBlock.uuid) {
-        // grab the block, strip it out of the placedBlocks list
-        activeBlock = tmp;
-        placedBlocks = placedBlocks.filter(block => block.uuid != activeBlock.uuid)
-        handleSnapping(activeBlock, 'unsnap')
-        setBlockAndOutlineColors(activeBlock, 0xcd7837, 0x6f3101);
+  // If user is in block mode:
+  if (dimensionManager.state === DimensionState.INACTIVE) {
+    if (dist < 5 && timeDiff < 1000) {
+      if (activeBlock) {
+        // user is placing a block
+        handleSnapping(activeBlock, 'snap');
+        placedBlocks.push(activeBlock);
+        setBlockAndOutlineColors(activeBlock, 0xffffff, 0x000000);
         updateCostCalculator();
+        showAllUnsnappedAttachmentPoints();
+        activeBlock = null;
+      } else {
+        // user might pick up a block
+        let tmp = raycastToCheckForBlock(event);
+        if (tmp?.uuid && tmp.uuid === potentialTargetBlock?.uuid) {
+          // pick it up
+          activeBlock = tmp;
+          placedBlocks = placedBlocks.filter(block => block.uuid != activeBlock.uuid);
+          handleSnapping(activeBlock, 'unsnap');
+          setBlockAndOutlineColors(activeBlock, 0xcd7837, 0x6f3101);
+          updateCostCalculator();
+        }
       }
     }
-
   }
 }
 
+
+/**
+ * Handles keyboard shortcuts:
+ * - 'r' or 'R' to rotate an active block or the roof (if no block is active).
+ * - 'Shift+r' or 'Shift+R' for opposite rotation direction.
+ * - 'Delete' to delete an active block.
+ * 
+ * @param {KeyboardEvent} event The keydown event.
+ * @returns {void}
+ */
 function onKeyDown(event) {
   if (activeBlock) {
     if (event.key.toLowerCase() === 'r') {
@@ -515,13 +723,25 @@ function onKeyDown(event) {
 
 }
 
+/**
+ * Removes the currently active block from the scene,
+ * and sets activeBlock to null.
+ * 
+ * @returns {void}
+ */
 function deleteActiveBlock() {
   scene.remove(activeBlock);
   activeBlock = null;
   showAllUnsnappedAttachmentPoints();
 }
 
-// 5) RAYCAST UTILITY
+/**
+ * Finds the intersection of the mouse pointer with either the floor or placed blocks.
+ * Used for snapping block placement or dimension points to the floor.
+ * 
+ * @param {MouseEvent} event The mouse event to derive the ray from.
+ * @returns {THREE.Intersection|null} Intersection object (includes .point), or null if none.
+ */
 function getFloorIntersection(event) {
   const rect = renderer.domElement.getBoundingClientRect();
   const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -546,7 +766,41 @@ function getFloorIntersection(event) {
   return null;
 }
 
+/**
+ * Returns the intersection of the mouse with the floorMesh only.
+ * @param {MouseEvent} event
+ * @returns {THREE.Intersection|null}
+ */
+function getFloorOnlyIntersection(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
+  const mouseVec = new THREE.Vector2(x, y);
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouseVec, camera);
+
+  const intersects = raycaster.intersectObject(floorMesh, true);
+  if (intersects.length > 0) {
+    // Snap to 0.25 increments if you want
+    const point = intersects[0].point;
+    point.x = Math.round(point.x * 4) / 4;
+    point.z = Math.round(point.z * 4) / 4;
+    intersects[0].point.copy(point);
+    return intersects[0];
+  }
+  return null;
+}
+
+
+/**
+ * Snaps (or unsnaps) an active object to nearby attachment points of placed blocks.
+ * If no suitable candidate, snaps the object to the nearest 0.25 grid in x/z.
+ * 
+ * @param {THREE.Object3D} activeObj The block being placed or moved.
+ * @param {string} mode "snap" or "unsnap", indicating whether to connect or detach attachments.
+ * @returns {void}
+ */
 function handleSnapping(activeObj, mode) {
   const activePoints = activeObj.userData.attachmentPoints || [];
 
@@ -650,8 +904,12 @@ function handleSnapping(activeObj, mode) {
   }
 }
 
-
-// 7) COST CALCULATOR
+/**
+ * Recalculates the total cost of all placed blocks and updates the costCalculator DOM element.
+ * Groups blocks by ID to show quantity and sub-totals.
+ * 
+ * @returns {void}
+ */
 function updateCostCalculator() {
   const tally = {};
   placedBlocks.forEach(obj => {
@@ -679,7 +937,12 @@ function updateCostCalculator() {
   if (costDiv) costDiv.innerHTML = lines;
 }
 
-// 8) SERIALIZE / DESERIALIZE with COMPRESSION
+/**
+ * Serializes the current scene (blocks, roof choice, roof rotation, dimension lines)
+ * into a compressed Base64 string.
+ * 
+ * @returns {string} A Base64-compressed JSON string representing the scene.
+ */
 function serializeScene() {
   const data = placedBlocks.map(block => {
     const blockId = block.userData.blockId;
@@ -713,11 +976,30 @@ function serializeScene() {
     };
   });
 
-  const jsonStr = JSON.stringify({ blocks: data, roof: roofChoice, roofRot: roofRotation });
+  // collect dimension lines
+  const dimensionData = placedDimensions.map(dim => {
+    return {
+      start: { x: dim.start.x, y: dim.start.y, z: dim.start.z },
+      end: { x: dim.end.x, y: dim.end.y, z: dim.end.z }
+    };
+  });
+
+  const jsonStr = JSON.stringify({
+    blocks: data,
+    roof: roofChoice,
+    roofRot: roofRotation,
+    dimensions: dimensionData
+  });
   const compressed = LZString.compressToBase64(jsonStr);
   return compressed;
 }
 
+/**
+ * Copies the serialized scene data (Base64 string) to the clipboard,
+ * then shows a small popup confirmation.
+ * 
+ * @returns {void}
+ */
 function onSaveScene() {
   const compressed = serializeScene();
   navigator.clipboard.writeText(compressed).then(() => {
@@ -730,6 +1012,14 @@ function onSaveScene() {
   });
 }
 
+/**
+ * Loads the serialized scene from a Base64 string typed into the loadSceneInput element.
+ * Decompresses, parses, clears existing objects/dimensions, and recreates blocks and dimensions.
+ * Restores the roof choice as well.
+ * 
+ * @async
+ * @returns {Promise<void>}
+ */
 async function onLoadScene() {
   const inputEl = document.getElementById('loadSceneInput');
   if (!inputEl) return;
@@ -764,9 +1054,23 @@ async function onLoadScene() {
   placedBlocks.forEach(b => scene.remove(b));
   placedBlocks = [];
 
+  // Clear dimension lines
+  placedDimensions.forEach(dim => removeDimensionFromScene(dim));
+  placedDimensions = [];
+
   // Recreate blocks sequentially
   for (const blockInfo of parsed.blocks) {
     await recreateBlockFromData(blockInfo);
+  }
+
+  // Recreate dimension lines
+  if (parsed.dimensions && Array.isArray(parsed.dimensions)) {
+    parsed.dimensions.forEach(dim => {
+      const p1 = new THREE.Vector3(dim.start.x, dim.start.y, dim.start.z);
+      const p2 = new THREE.Vector3(dim.end.x, dim.end.y, dim.end.z);
+      addDimensionLineToScene(p1, p2); // draws in 3D
+      placedDimensions.push({ start: p1, end: p2 });
+    });
   }
 
   // After all blocks are recreated, update and handle roof
@@ -778,6 +1082,13 @@ async function onLoadScene() {
   roofRadio.dispatchEvent(new Event('change'));
 }
 
+/**
+ * Utility function that wraps OBJLoader.load in a Promise.
+ * 
+ * @param {OBJLoader} loader A Three.js OBJLoader instance.
+ * @param {string} file The path or URL of the OBJ file to load.
+ * @returns {Promise<THREE.Group>} Resolves to the loaded 3D object.
+ */
 function loadOBJWithPromise(loader, file) {
   return new Promise((resolve, reject) => {
     loader.load(
@@ -789,6 +1100,15 @@ function loadOBJWithPromise(loader, file) {
   });
 }
 
+/**
+ * Recreates a block in the scene based on the blockInfo object from serialized data.
+ * Looks up the corresponding geometryFile in blocksData, loads it, applies transformations,
+ * and re-applies attachment point states.
+ * 
+ * @async
+ * @param {Object} blockInfo Serialized block data (ID, position, rotation, attachments, etc.).
+ * @returns {Promise<void>}
+ */
 async function recreateBlockFromData(blockInfo) {
   let blockDef = null;
   for (let categoryKey in blocksData) {
@@ -822,7 +1142,7 @@ async function recreateBlockFromData(blockInfo) {
       }
     });
 
-    objRoot.scale.set(3.28084, 3.28084, 3.28084);
+    objRoot.scale.set(3.28084, 2.45, 3.28084);
     objRoot.position.set(
       blockInfo.position.x,
       blockInfo.position.y,
@@ -854,7 +1174,12 @@ async function recreateBlockFromData(blockInfo) {
   }
 }
 
-
+/**
+ * Computes the bounding box that encloses all placed blocks in the scene.
+ * 
+ * @returns {Object} An object with minx, maxx, miny, maxy, minz, maxz representing the bounding box.
+ *                   If no blocks are placed, minx will be Infinity (so check before use).
+ */
 function getMeshBoundingBox() {
   // We'll track min/max for x, y, z
   let minx = Infinity, miny = Infinity, minz = Infinity;
@@ -884,6 +1209,12 @@ function getMeshBoundingBox() {
   return { minx, maxx, miny, maxy, minz, maxz };
 }
 
+/**
+ * Binds change listeners to all radio inputs for roof choice.
+ * When the user picks a new roof, handleRoofChoice is called.
+ * 
+ * @returns {void}
+ */
 function initRoofRadios() {
   document.querySelectorAll('input[name="roofChoiceInput"]').forEach(radio => {
     radio.addEventListener('change', (e) => {
@@ -893,6 +1224,14 @@ function initRoofRadios() {
   });
 }
 
+/**
+ * Removes any previously displayed roof mesh, computes the bounding box of the structure,
+ * then builds the chosen roof type (A-FRAME, OFFSET, FLAT) or none at all.
+ * Positions and rotates the roof according to roofRotation.
+ * 
+ * @param {string} choice The chosen roof type ("NONE", "AFRAME", "OFFSET", or "FLAT").
+ * @returns {void}
+ */
 function handleRoofChoice(choice) {
   roofChoice = choice;
 
@@ -965,6 +1304,15 @@ function handleRoofChoice(choice) {
   currentRoofMesh = newRoof;
 }
 
+/**
+ * Builds an A-frame style roof as a THREE.Group, including main triangular geometry
+ * plus soffit overhangs. The width is along X, depth along Z, and the apex is determined
+ * by the slopeAngle.
+ * 
+ * @param {number} widthX The total width in the X direction.
+ * @param {number} depthZ The total depth in the Z direction.
+ * @returns {THREE.Group} A group containing the A-frame roof geometry.
+ */
 function buildAFrameRoof(widthX, depthZ) {
   const group = new THREE.Group();
 
@@ -1005,6 +1353,15 @@ function buildAFrameRoof(widthX, depthZ) {
   return group;
 }
 
+/**
+ * Constructs one side (left or right) of an A-frame soffit (the overhang beneath the roof edge).
+ * Builds a shape in the X-Y plane and extrudes it along Z, then positions it appropriately.
+ * 
+ * @param {"left"|"right"} side Which side of the A-frame to build ("left" or "right").
+ * @param {number} widthX The total roof width in X.
+ * @param {number} depthZ The total roof depth in Z.
+ * @returns {THREE.Mesh} The extruded soffit mesh.
+ */
 function makeAFrameSoffit(side, widthX, depthZ) {
 
   // apex in Y => tan(slopeAngle)*(widthX/2)
@@ -1038,7 +1395,14 @@ function makeAFrameSoffit(side, widthX, depthZ) {
   return soffitMesh;
 }
 
-
+/**
+ * Builds an "offset" roof, which is effectively split into two sloping slabs
+ * with different widths. Each slab is extruded in the Z direction. Adds soffits as well.
+ * 
+ * @param {number} widthX The total width in the X direction.
+ * @param {number} depthZ The total depth in the Z direction.
+ * @returns {THREE.Group} A group containing the offset roof geometry.
+ */
 function buildOffsetRoof(widthX, depthZ) {
 
   // left portion
@@ -1109,6 +1473,15 @@ function buildOffsetRoof(widthX, depthZ) {
   return group;
 }
 
+/**
+ * Constructs the soffit for one side (left or right) of the offset roof.
+ * Uses the slopeAngle to calculate the apex, then extrudes a shape in Z.
+ * 
+ * @param {"left"|"right"} side Which side of the offset roof ("left" or "right").
+ * @param {number} widthX The total roof width in X.
+ * @param {number} depthZ The total roof depth in Z.
+ * @returns {THREE.Mesh} The extruded soffit mesh for the offset roof side.
+ */
 function makeOffsetSoffit(side, widthX, depthZ) {
 
   const widthMultiplier = (side == "left") ? OFFSET_RATIO : 1 - OFFSET_RATIO;
@@ -1144,7 +1517,14 @@ function makeOffsetSoffit(side, widthX, depthZ) {
   return soffitMesh;
 }
 
-
+/**
+ * Builds a simple flat roof as a box geometry with thickness = SOFFIT_THICKNESS,
+ * sized to cover the bounding box of the building plus soffit overhang.
+ * 
+ * @param {number} widthX The total roof width in X.
+ * @param {number} depthZ The total roof depth in Z.
+ * @returns {THREE.Mesh} A box mesh representing the flat roof.
+ */
 function buildFlatRoof(widthX, depthZ) {
   const thickness = SOFFIT_THICKNESS;
 
@@ -1161,6 +1541,19 @@ function buildFlatRoof(widthX, depthZ) {
   return flatMesh;
 }
 
+/**
+ * Draws thick white lines on a 2D canvas to represent the top-down edges of all placed blocks.
+ * Also draws dimension lines in pink and places block labels (blueprintName).
+ * Adds a 5px border and a simple scale indicator (1ft).
+ * 
+ * @param {CanvasRenderingContext2D} ctx The 2D canvas context to draw on.
+ * @param {THREE.Object3D[]} placedBlocks The array of placed block objects in the scene.
+ * @param {Object} bbox The bounding box object with min/max x, y, z.
+ * @param {number} pxPerUnit Pixels per unit of 3D distance (e.g., 60 px per foot).
+ * @param {number} canvasWidth The final canvas width in pixels.
+ * @param {number} canvasHeight The final canvas height in pixels.
+ * @returns {void}
+ */
 function drawThickBlueprintEdges2D(
   ctx,
   placedBlocks,
@@ -1169,7 +1562,6 @@ function drawThickBlueprintEdges2D(
   canvasWidth,
   canvasHeight
 ) {
-  console.log("=== drawThickBlueprintEdges2D START ===");
 
   const originalWidth = bbox.maxx - bbox.minx;
   const originalHeight = bbox.maxz - bbox.minz;
@@ -1272,8 +1664,6 @@ function drawThickBlueprintEdges2D(
     const blueprintName = block.userData?.blueprintName;
     const offsetData = block.userData?.blueprintNameOffset;
 
-    console.log(`Block #${iBlock}: blueprintName= ${blueprintName} offsetData=`, offsetData);
-
     if (blueprintName && offsetData && offsetData.position) {
       // block's world transform
       const blockPos = block.getWorldPosition(new THREE.Vector3());
@@ -1319,8 +1709,70 @@ function drawThickBlueprintEdges2D(
     }
   });
 
+  placedDimensions.forEach(dim => {
+    const cA = worldToCanvas(dim.start.x, dim.start.z);
+    const cB = worldToCanvas(dim.end.x, dim.end.z);
+
+    // Inside placedDimensions.forEach(...)
+    const dist = dim.start.distanceTo(dim.end);
+    const label = dist.toFixed(2) + "ft";
+    const midX = (cA.x + cB.x) / 2;
+    const midY = (cA.y + cB.y) / 2;
+
+    // 1) Let's break the dimension line into two segments, leaving a gap in the center for the text
+    const gapSize = 40; // in screen px, for example
+    // find the direction from A to B in screen coords
+    const dx = cB.x - cA.x;
+    const dy = cB.y - cA.y;
+    const segLen = Math.sqrt(dx * dx + dy * dy);
+    const halfLine = (segLen - gapSize) / 2;
+
+    // we can place a small function to scale a point
+    function pointAlongLine(px, py, dx, dy, distance) {
+      const factor = distance / segLen;
+      return {
+        x: px + dx * factor,
+        y: py + dy * factor
+      };
+    }
+
+    // Segment 1 from cA to cA+halfLine
+    const end1 = pointAlongLine(cA.x, cA.y, dx, dy, halfLine);
+    ctx.beginPath();
+    ctx.moveTo(cA.x, cA.y);
+    ctx.lineTo(end1.x, end1.y);
+    ctx.strokeStyle = "pink";
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    // Segment 2 from cB - halfLine to cB
+    const start2 = pointAlongLine(cA.x, cA.y, dx, dy, segLen - halfLine);
+    ctx.beginPath();
+    ctx.moveTo(start2.x, start2.y);
+    ctx.lineTo(cB.x, cB.y);
+    ctx.strokeStyle = "pink";
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    // 2) Perpendicular bars, each 0.5 scene units => convert to pixels
+    //   In your 3D => 0.5 ft. So in canvas => 0.5 * pxPerUnit
+    const perpLenPx = 0.5 * pxPerUnit;
+    drawPerpBar2D(ctx, cA, cB, perpLenPx);
+    drawPerpBar2D(ctx, cB, cA, perpLenPx);
+
+    // 3) Dimension label in center
+    ctx.save();
+    ctx.fillStyle = "pink";
+    ctx.font = "28px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, midX, midY);
+    // restore
+    ctx.restore();
+
+  });
+
   // 3) draw 5px white border, 10px from outside
-  console.log("Drawing border + scale text...");
   const offset = 10;
   const borderWidth = 5;
   const usableW = canvasWidth - offset * 2;
@@ -1331,8 +1783,6 @@ function drawThickBlueprintEdges2D(
   ctx.lineWidth = borderWidth;
   ctx.strokeRect(offset, offset, usableW, usableH);
   ctx.restore();
-
-  console.log("Drawing dimension line => 60px, shape of 'I' with label '= 1FT'");
 
   // We'll draw a line 60 px long, with vertical strokes at each end, near top-left
   // Suppose we do it below the border offset area
@@ -1367,16 +1817,46 @@ function drawThickBlueprintEdges2D(
   ctx.fillText("= 1FT", dimX + dimLength + 10, dimY + 8);
 
   ctx.restore();
+}
 
+function drawPerpBar2D(ctx, start, other, barLength) {
+  // Vector from start to other
+  const dx = other.x - start.x;
+  const dy = other.y - start.y;
+  // find a perpendicular
+  let perpX = -dy;
+  let perpY = dx;
 
-  console.log("=== drawThickBlueprintEdges2D END ===");
+  const len = Math.sqrt(perpX * perpX + perpY * perpY);
+  if (len < 0.0001) return; // degenerate
+  perpX /= len; // now it's unit
+  perpY /= len;
+
+  // We want to draw a line of length `barLength`, centered at start
+  // so from -barLength/2..+barLength/2 along perp
+  const half = barLength / 2;
+  const x1 = start.x - perpX * half;
+  const y1 = start.y - perpY * half;
+  const x2 = start.x + perpX * half;
+  const y2 = start.y + perpY * half;
+
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.strokeStyle = "pink";
+  ctx.lineWidth = 5;
+  ctx.stroke();
 }
 
 
-
+/**
+ * Creates a 2D canvas snapshot of the floorplan (top-down),
+ * draws block edges and dimensions, then triggers a download of the resulting image.
+ * 
+ * @async
+ * @returns {Promise<void>} Resolves when the blueprint is rendered and downloaded as a PNG.
+ */
 async function exportBlueprintPNG() {
-  console.log("=== exportBlueprintPNG() - thick lines, margin, border, scale, block labels ===");
-
   // 1) bounding box => to define bounding region
   const bbox = getMeshBoundingBox();
   if (bbox.minx === Infinity) {
@@ -1398,8 +1878,6 @@ async function exportBlueprintPNG() {
   const pxPerUnit = 60;
   const imageWidthPx = Math.ceil(finalWidth * pxPerUnit);
   const imageHeightPx = Math.ceil(finalHeight * pxPerUnit);
-
-  console.log(`Blueprint => ${imageWidthPx} x ${imageHeightPx} px. BBox=`, bbox);
 
   // 2) minimal 3D pass => solid blue background
   const blueprintRenderer = new THREE.WebGLRenderer({ antialias: true });
@@ -1440,14 +1918,314 @@ async function exportBlueprintPNG() {
 
   // 4) final => convert to dataURL
   const finalData = finalCanvas.toDataURL("image/png");
-  console.log("Final blueprint data length=", finalData.length);
 
   // 5) force download
   const link = document.createElement('a');
   link.download = "blueprint.png";
   link.href = finalData;
   link.click();
-
-  console.log("=== exportBlueprintPNG() done ===");
 }
 
+/**
+ * Toggles dimension mode on/off. When on, the user can click two points on the floor
+ * to place a dimension line. After the second click, dimension mode turns off again.
+ * 
+ * @returns {void}
+ */
+function onAddDimensionClicked() {
+  // Toggle dimension mode
+  if (dimensionManager.state === DimensionState.INACTIVE) {
+    console.log("Dimension mode: ON. Click two points on the floor to define a dimension line.");
+    // Change cursor to a measuring tape emoji while dimension mode is active
+    document.body.style.cursor = "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><text x=%220%22 y=%2222%22 font-size=%2222%22>📏</text></svg>'), auto";
+    dimensionManager.state = DimensionState.PLACING_FIRST_POINT;
+  } else {
+    console.log("Dimension mode: OFF.");
+    dimensionManager.state = DimensionState.INACTIVE;
+    document.body.style.cursor = "auto";
+  }
+}
+
+
+/**
+ * Creates a small cylinder in the scene between two points p1 and p2 to visualize a dimension line.
+ * Orients the cylinder so that it aligns with the direction from p1 to p2.
+ * 
+ * @param {THREE.Vector3} p1 The start point of the dimension line.
+ * @param {THREE.Vector3} p2 The end point of the dimension line.
+ * @returns {void}
+ */
+function addDimensionLineToScene(p1, p2) {
+  const dist = p1.distanceTo(p2);
+  if (dist < 0.01) return;
+
+  const midPoint = p1.clone().lerp(p2, 0.5);
+
+  // a small cylinder oriented from p1..p2
+  const radius = 0.05; // 0.25 wide might be too big, so 0.05 for example
+  const geom = new THREE.CylinderGeometry(radius, radius, dist, 8, 1, false);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+  const cylinder = new THREE.Mesh(geom, mat);
+
+  // rotate the cylinder so it goes from p1..p2 => align with vector p2-p1
+  // By default, CylinderGeometry is oriented along the Y-axis from -height/2..+height/2
+  // We position it at the midpoint
+  cylinder.position.copy(midPoint);
+
+  // orientation => direction from p1 to p2
+  const dir = new THREE.Vector3().subVectors(p2, p1).normalize();
+  // we can do .lookAt on a dummy
+  const axis = new THREE.Vector3(0, 1, 0); // cylinder default up
+  // compute quaternion from axis -> dir
+  const quat = new THREE.Quaternion().setFromUnitVectors(axis, dir);
+  cylinder.quaternion.copy(quat);
+
+  scene.add(cylinder);
+  console.log("Dimension line added, dist=", dist.toFixed(2));
+}
+
+/**
+ * Creates a new THREE.Group containing a dimension line, end bars, and a text sprite.
+ * Used as a live "preview" while the user is selecting the second point.
+ * 
+ * @param {THREE.Vector3} p1 The first point of the dimension line.
+ * @param {THREE.Vector3} p2 The second point of the dimension line.
+ * @returns {THREE.Group} A group with the 3D dimension preview.
+ */
+function createDimension3DPreview(p1, p2) {
+  const group = new THREE.Group();
+
+  // Create the cylinder for the line
+  const { cylinder, distance } = createDimensionCylinder(p1, p2);
+  group.add(cylinder);
+
+  // Create and add perpendicular bars at each end
+  const bar1 = createPerpBar(p1, p2);
+  const bar2 = createPerpBar(p2, p1);
+  group.add(bar1);
+  group.add(bar2);
+
+  // Create a text sprite in the middle
+  dimensionPreviewTextSprite = createTextSprite(distance.toFixed(2) + " ft");
+  positionTextSprite(dimensionPreviewTextSprite, p1, p2);
+  group.add(dimensionPreviewTextSprite);
+
+  return group;
+}
+
+/**
+ * Updates an existing dimension preview group, re-calculating line length,
+ * re-orienting the cylinder, bars, and repositioning the text sprite.
+ * 
+ * @param {THREE.Group} group The dimension preview group to update.
+ * @param {THREE.Vector3} p1 The first point of the dimension line.
+ * @param {THREE.Vector3} p2 The second point of the dimension line.
+ * @returns {void}
+ */
+function updateDimension3DPreview(group, p1, p2) {
+  // 1) Remove all children from the group
+  //    (alternatively, just find and remove cylinder/bars/text specifically)
+  while (group.children.length > 0) {
+    const child = group.children.pop();
+    if (child.isMesh) {
+      child.geometry.dispose();
+      child.material.dispose();
+    }
+    group.remove(child);
+  }
+
+  // 2) Now re-generate the dimension cylinder, bars, text
+  const { cylinder, distance } = createDimensionCylinder(p1, p2);
+  group.add(cylinder);
+
+  const bar1 = createPerpBar(p1, p2);
+  group.add(bar1);
+
+  const bar2 = createPerpBar(p2, p1);
+  group.add(bar2);
+
+  const text = createTextSprite(distance.toFixed(2) + " ft");
+  positionTextSprite(text, p1, p2);
+  group.add(text);
+}
+
+
+
+function createDimensionCylinder(p1, p2) {
+  const distance = p1.distanceTo(p2);
+  const midPoint = p1.clone().lerp(p2, 0.5);
+
+  const radius = 0.02;
+  const geom = new THREE.CylinderGeometry(radius, radius, distance, 8, 1, false);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+  const cylinder = new THREE.Mesh(geom, mat);
+  cylinder.name = "dimensionCylinder";
+
+  // orient
+  cylinder.position.copy(midPoint);
+  const dir = new THREE.Vector3().subVectors(p2, p1).normalize();
+  const up = new THREE.Vector3(0, 1, 0);
+  const quat = new THREE.Quaternion().setFromUnitVectors(up, dir);
+  cylinder.quaternion.copy(quat);
+
+  return { cylinder, distance };
+}
+
+function createPerpBar(endPoint, otherPoint) {
+  // Make a small bar (0.5 units) oriented perpendicular to the dimension line
+  // We'll place its center at endPoint
+  const length = 0.5;
+  const radius = 0.02;
+  const geom = new THREE.CylinderGeometry(radius, radius, length, 8, 1, false);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+  const bar = new THREE.Mesh(geom, mat);
+
+  // name
+  bar.name = (otherPoint === endPoint) ? "dimensionBar1" : "dimensionBar2";
+
+  // We want a vector from endPoint to otherPoint
+  const mainDir = new THREE.Vector3().subVectors(otherPoint, endPoint).normalize();
+  // We can get a perpendicular vector in the horizontal plane:
+  // cross mainDir with (0,1,0) => if mainDir is vertical, we might do something else
+  let perp = new THREE.Vector3(0, 1, 0).cross(mainDir);
+  if (perp.length() < 0.001) {
+    // fallback if the dimension line is nearly vertical
+    perp = new THREE.Vector3(1, 0, 0);
+  }
+  perp.normalize();
+
+  // position bar's midpoint at endPoint
+  bar.position.copy(endPoint);
+
+  // orient bar so it aligns with perp
+  const up = new THREE.Vector3(0, 1, 0);
+  const quat = new THREE.Quaternion().setFromUnitVectors(up, perp);
+  bar.quaternion.copy(quat);
+
+  return bar;
+}
+
+function createTextSprite(message) {
+  // using a small canvas to draw text, then use it as a texture
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = "white";
+  ctx.font = "24px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+
+  const tex = new THREE.Texture(canvas);
+  tex.needsUpdate = true;
+
+  const mat = new THREE.SpriteMaterial({ map: tex });
+  const sprite = new THREE.Sprite(mat);
+  sprite.name = "dimensionText";
+
+  // scale sprite a bit
+  sprite.scale.set(1.5, 0.4, 1);
+
+  return sprite;
+}
+
+function positionTextSprite(sprite, p1, p2) {
+  const dist = p1.distanceTo(p2);
+  const mid = p1.clone().lerp(p2, 0.5);
+  // Lift it slightly above the floor if you want
+  mid.y += 0.5;
+  sprite.position.copy(mid);
+}
+
+function finalizeDimension(p1, p2) {
+  // 1) Remove or dispose the existing preview group
+  if (dimensionManager.previewGroup) {
+    console.log("[Dimension] Removing preview group before finalizing.");
+    scene.remove(dimensionManager.previewGroup);
+    disposeDimensionGroup(dimensionManager.previewGroup); // optional function (see below)
+    dimensionManager.previewGroup = null;
+  }
+
+  // 2) Create a brand-new dimension group to keep permanently
+  const dimGroup = createDimension3DPreview(p1, p2);
+  placedDimensions3D.push(dimGroup);
+  scene.add(dimGroup);
+
+  // Also store 2D info
+  placedDimensions.push({ start: p1.clone(), end: p2.clone() });
+}
+
+function disposeDimensionGroup(group) {
+  group.traverse(child => {
+    if (child.isMesh) {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+    }
+  });
+}
+
+
+
+
+document.getElementById('deleteDimensionBtn').addEventListener('click', () => {
+  dimensionManager.state = DimensionState.DELETE_MODE;
+  document.body.style.cursor = "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><text x=%220%22 y=%2222%22 font-size=%2222%22>❌</text></svg>'), auto";
+});
+
+function deleteDimensionAtMouse(event) {
+  // build a list of dimension meshes to raycast
+  let dimMeshes = [];
+  placedDimensions3D.forEach(group => {
+    group.traverse(child => {
+      if (child.isMesh) {
+        dimMeshes.push(child);
+      }
+    });
+  });
+
+  // standard raycast
+  const rect = renderer.domElement.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  const mouseVec = new THREE.Vector2(x, y);
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouseVec, camera);
+
+  const hits = raycaster.intersectObjects(dimMeshes, true);
+  if (hits.length > 0) {
+    // The first hit is the dimension cylinder or bar or text sprite
+    const hitObj = hits[0].object;
+    // find the group
+    const parentGroup = findDimensionGroup(hitObj);
+    if (!parentGroup) return;
+
+    // remove from scene
+    scene.remove(parentGroup);
+    // remove from placedDimensions3D
+    placedDimensions3D = placedDimensions3D.filter(g => g !== parentGroup);
+
+    // optionally also remove from placedDimensions if you want to remove the 2D representation
+    // you'd have to find which dimension's start/end matches this group if you stored that info in userData
+
+    // optionally revert to INACTIVE
+    dimensionManager.state = DimensionState.INACTIVE;
+    document.body.style.cursor = 'auto';
+  }
+}
+
+/**
+ * Finds the dimension Group parent of a mesh or sprite by walking up .parent 
+ * until we find an object with 0-based parent or a recognized dimension group name.
+ */
+function findDimensionGroup(object) {
+  let obj = object;
+  while (obj.parent) {
+    if (placedDimensions3D.includes(obj)) {
+      return obj;
+    }
+    obj = obj.parent;
+  }
+  return null;
+}

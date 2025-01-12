@@ -151,8 +151,8 @@ h2 {
   margin-top: 0.2rem;
 }
 
-.blueprint-button {
-  margin-top: 0.0rem;
+.tool-button {
+  margin-bottom: 0.3rem;
   background-color: #cc0000;
   /* red accent */
   color: #fff;
@@ -163,7 +163,7 @@ h2 {
   cursor: pointer;
 }
 
-.blueprint-button:hover {
+.tool-button:hover {
   background-color: #b30000;
 }
 
