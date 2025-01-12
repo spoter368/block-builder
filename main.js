@@ -582,24 +582,15 @@ function onMouseDown(event) {
   mouseDownPos.set(event.clientX, event.clientY);
   mouseDownTime = performance.now();
   potentialTargetBlock = null;
-  console.log("mousedown detected")
 
-  // 1) If dimension manager is not inactive or we are in dimension delete mode:
-  if (dimensionManager.state != DimensionState.INACTIVE) {
-    // Let dimension manager handle the click
-    handleDimensionMouseDown(event);
-    return;
-  }
-
-  // 2) Otherwise, we are in block mode => existing logic
+  // We are in block mode => existing logic
   if (!activeBlock) {
     potentialTargetBlock = raycastToCheckForBlock(event);
   }
 }
 
 
-function handleDimensionMouseDown(event) {
-  console.log("dimensionmousedown handler called")
+function handleDimensionMouseUp(event) {
   switch (dimensionManager.state) {
     case DimensionState.PLACING_FIRST_POINT:
       const hit1 = getFloorOnlyIntersection(event);
@@ -650,12 +641,14 @@ function onMouseUp(event) {
   const dist = Math.hypot(event.clientX - mouseDownPos.x, event.clientY - mouseDownPos.y);
   const timeDiff = performance.now() - mouseDownTime;
 
-  // For dimension manager, we do nothing special here.
-  // The dimension manager logic is already in handleDimensionMouseDown() for the moment.
-
-  // If user is in block mode:
-  if (dimensionManager.state === DimensionState.INACTIVE) {
-    if (dist < 5 && timeDiff < 1000) {
+  if (dist < 5 && timeDiff < 1000) {
+    // 1) If dimension manager is not inactive 
+    if (dimensionManager.state != DimensionState.INACTIVE) {
+      // Let dimension manager handle the click
+      handleDimensionMouseUp(event);
+      return;
+    } else {
+      // interact with block
       if (activeBlock) {
         // user is placing a block
         handleSnapping(activeBlock, 'snap');
@@ -1050,36 +1043,58 @@ async function onLoadScene() {
     return;
   }
 
-  // Clear existing
+  // --- 1) Clear existing blocks from scene
   placedBlocks.forEach(b => scene.remove(b));
   placedBlocks = [];
 
-  // Clear dimension lines
-  placedDimensions.forEach(dim => removeDimensionFromScene(dim));
+  // --- 2) Clear existing dimension groups
+  placedDimensions.forEach(dim => {
+    removeDimensionFromScene(dim); // see below
+  });
   placedDimensions = [];
 
-  // Recreate blocks sequentially
+  // --- 3) Recreate blocks
   for (const blockInfo of parsed.blocks) {
     await recreateBlockFromData(blockInfo);
   }
 
-  // Recreate dimension lines
+  // --- 4) Recreate dimensions
   if (parsed.dimensions && Array.isArray(parsed.dimensions)) {
-    parsed.dimensions.forEach(dim => {
-      const p1 = new THREE.Vector3(dim.start.x, dim.start.y, dim.start.z);
-      const p2 = new THREE.Vector3(dim.end.x, dim.end.y, dim.end.z);
-      addDimensionLineToScene(p1, p2); // draws in 3D
-      placedDimensions.push({ start: p1, end: p2 });
+    parsed.dimensions.forEach(d => {
+      const p1 = new THREE.Vector3(d.start.x, d.start.y, d.start.z);
+      const p2 = new THREE.Vector3(d.end.x, d.end.y, d.end.z);
+
+      // Create a new 3D group
+      const dimGroup = createDimension3DPreview(p1, p2);
+      scene.add(dimGroup);
+
+      // Store in placedDimensions
+      placedDimensions.push({
+        start: p1,
+        end: p2,
+        group: dimGroup
+      });
     });
   }
 
-  // After all blocks are recreated, update and handle roof
+  // --- 5) restore roof
   updateCostCalculator();
   showAllUnsnappedAttachmentPoints();
   roofRotation = parsed.roofRot;
   const roofRadio = document.querySelector(`input[name="roofChoiceInput"][value="${parsed.roof}"]`);
   roofRadio.checked = true;
   roofRadio.dispatchEvent(new Event('change'));
+}
+
+/**
+ * Removes a dimension's 3D group from the scene and disposes of its geometry/material.
+ * @param {DimensionObj} dimension 
+ */
+function removeDimensionFromScene(dimension) {
+  if (dimension.group) {
+    scene.remove(dimension.group);
+    disposeDimensionGroup(dimension.group);
+  }
 }
 
 /**
@@ -1720,7 +1735,7 @@ function drawThickBlueprintEdges2D(
     const midY = (cA.y + cB.y) / 2;
 
     // 1) Let's break the dimension line into two segments, leaving a gap in the center for the text
-    const gapSize = 40; // in screen px, for example
+    const gapSize = 2; // in screen px, for example
     // find the direction from A to B in screen coords
     const dx = cB.x - cA.x;
     const dy = cB.y - cA.y;
@@ -1741,7 +1756,7 @@ function drawThickBlueprintEdges2D(
     ctx.beginPath();
     ctx.moveTo(cA.x, cA.y);
     ctx.lineTo(end1.x, end1.y);
-    ctx.strokeStyle = "pink";
+    ctx.strokeStyle = "white";
     ctx.lineWidth = 5;
     ctx.stroke();
 
@@ -1750,7 +1765,7 @@ function drawThickBlueprintEdges2D(
     ctx.beginPath();
     ctx.moveTo(start2.x, start2.y);
     ctx.lineTo(cB.x, cB.y);
-    ctx.strokeStyle = "pink";
+    ctx.strokeStyle = "white";
     ctx.lineWidth = 5;
     ctx.stroke();
 
@@ -1762,10 +1777,25 @@ function drawThickBlueprintEdges2D(
 
     // 3) Dimension label in center
     ctx.save();
-    ctx.fillStyle = "pink";
-    ctx.font = "28px sans-serif";
+    // Font params
+    ctx.font = "24px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    // Padding around the text background
+    const textPadding = 10;
+    // Measure the text width and height
+    const textMetrics = ctx.measureText(label);
+    const textWidth = textMetrics.width;
+    const textHeight = 24;
+    // Calculate background rectangle coordinates
+    const rectX = midX - textWidth / 2 - textPadding;
+    const rectY = midY - textHeight / 2 - textPadding;
+    const rectWidth = textWidth + textPadding * 2;
+    const rectHeight = textHeight + textPadding * 2;
+    // Draw blue background rectangle
+    ctx.fillStyle = "blue";
+    ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+    ctx.fillStyle = "white";
     ctx.fillText(label, midX, midY);
     // restore
     ctx.restore();
@@ -1843,7 +1873,7 @@ function drawPerpBar2D(ctx, start, other, barLength) {
   ctx.beginPath();
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
-  ctx.strokeStyle = "pink";
+  ctx.strokeStyle = "white";
   ctx.lineWidth = 5;
   ctx.stroke();
 }
@@ -1937,51 +1967,13 @@ function onAddDimensionClicked() {
   if (dimensionManager.state === DimensionState.INACTIVE) {
     console.log("Dimension mode: ON. Click two points on the floor to define a dimension line.");
     // Change cursor to a measuring tape emoji while dimension mode is active
-    document.body.style.cursor = "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><text x=%220%22 y=%2222%22 font-size=%2222%22>📏</text></svg>'), auto";
+    document.body.style.cursor = "crosshair";
     dimensionManager.state = DimensionState.PLACING_FIRST_POINT;
   } else {
     console.log("Dimension mode: OFF.");
     dimensionManager.state = DimensionState.INACTIVE;
     document.body.style.cursor = "auto";
   }
-}
-
-
-/**
- * Creates a small cylinder in the scene between two points p1 and p2 to visualize a dimension line.
- * Orients the cylinder so that it aligns with the direction from p1 to p2.
- * 
- * @param {THREE.Vector3} p1 The start point of the dimension line.
- * @param {THREE.Vector3} p2 The end point of the dimension line.
- * @returns {void}
- */
-function addDimensionLineToScene(p1, p2) {
-  const dist = p1.distanceTo(p2);
-  if (dist < 0.01) return;
-
-  const midPoint = p1.clone().lerp(p2, 0.5);
-
-  // a small cylinder oriented from p1..p2
-  const radius = 0.05; // 0.25 wide might be too big, so 0.05 for example
-  const geom = new THREE.CylinderGeometry(radius, radius, dist, 8, 1, false);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
-  const cylinder = new THREE.Mesh(geom, mat);
-
-  // rotate the cylinder so it goes from p1..p2 => align with vector p2-p1
-  // By default, CylinderGeometry is oriented along the Y-axis from -height/2..+height/2
-  // We position it at the midpoint
-  cylinder.position.copy(midPoint);
-
-  // orientation => direction from p1 to p2
-  const dir = new THREE.Vector3().subVectors(p2, p1).normalize();
-  // we can do .lookAt on a dummy
-  const axis = new THREE.Vector3(0, 1, 0); // cylinder default up
-  // compute quaternion from axis -> dir
-  const quat = new THREE.Quaternion().setFromUnitVectors(axis, dir);
-  cylinder.quaternion.copy(quat);
-
-  scene.add(cylinder);
-  console.log("Dimension line added, dist=", dist.toFixed(2));
 }
 
 /**
@@ -2057,7 +2049,7 @@ function createDimensionCylinder(p1, p2) {
 
   const radius = 0.02;
   const geom = new THREE.CylinderGeometry(radius, radius, distance, 8, 1, false);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+  const mat = new THREE.MeshBasicMaterial({ color: 0xcc0000 });
   const cylinder = new THREE.Mesh(geom, mat);
   cylinder.name = "dimensionCylinder";
 
@@ -2077,7 +2069,7 @@ function createPerpBar(endPoint, otherPoint) {
   const length = 0.5;
   const radius = 0.02;
   const geom = new THREE.CylinderGeometry(radius, radius, length, 8, 1, false);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+  const mat = new THREE.MeshBasicMaterial({ color: 0xcc0000 });
   const bar = new THREE.Mesh(geom, mat);
 
   // name
@@ -2131,30 +2123,39 @@ function createTextSprite(message) {
 }
 
 function positionTextSprite(sprite, p1, p2) {
-  const dist = p1.distanceTo(p2);
   const mid = p1.clone().lerp(p2, 0.5);
-  // Lift it slightly above the floor if you want
-  mid.y += 0.5;
+  // Lift it slightly above the floor
+  mid.y += 0.25;
   sprite.position.copy(mid);
 }
 
+/**
+ * Finalizes the creation of a dimension by removing the preview group 
+ * and creating a permanent 3D group. Stores it in placedDimensions.
+ * 
+ * @param {THREE.Vector3} p1 - The first point
+ * @param {THREE.Vector3} p2 - The second point
+ */
 function finalizeDimension(p1, p2) {
   // 1) Remove or dispose the existing preview group
   if (dimensionManager.previewGroup) {
-    console.log("[Dimension] Removing preview group before finalizing.");
     scene.remove(dimensionManager.previewGroup);
-    disposeDimensionGroup(dimensionManager.previewGroup); // optional function (see below)
+    disposeDimensionGroup(dimensionManager.previewGroup); // optional disposal
     dimensionManager.previewGroup = null;
   }
 
   // 2) Create a brand-new dimension group to keep permanently
   const dimGroup = createDimension3DPreview(p1, p2);
-  placedDimensions3D.push(dimGroup);
   scene.add(dimGroup);
 
-  // Also store 2D info
-  placedDimensions.push({ start: p1.clone(), end: p2.clone() });
+  // 3) Store in placedDimensions as a single object with start/end/group
+  placedDimensions.push({
+    start: p1.clone(),
+    end: p2.clone(),
+    group: dimGroup
+  });
 }
+
 
 function disposeDimensionGroup(group) {
   group.traverse(child => {
@@ -2165,26 +2166,29 @@ function disposeDimensionGroup(group) {
   });
 }
 
-
-
-
 document.getElementById('deleteDimensionBtn').addEventListener('click', () => {
-  dimensionManager.state = DimensionState.DELETE_MODE;
-  document.body.style.cursor = "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><text x=%220%22 y=%2222%22 font-size=%2222%22>❌</text></svg>'), auto";
+  if (dimensionManager.state === DimensionState.DELETE_MODE) {
+    dimensionManager.state = DimensionState.INACTIVE;
+    document.body.style.cursor = "auto";
+  } else {
+    dimensionManager.state = DimensionState.DELETE_MODE;
+    document.body.style.cursor = "no-drop";
+  }
 });
 
 function deleteDimensionAtMouse(event) {
-  // build a list of dimension meshes to raycast
+  // Build a list of dimension meshes from all dimension groups
   let dimMeshes = [];
-  placedDimensions3D.forEach(group => {
-    group.traverse(child => {
+  placedDimensions.forEach(dim => {
+    if (!dim.group) return;
+    dim.group.traverse(child => {
       if (child.isMesh) {
         dimMeshes.push(child);
       }
     });
   });
 
-  // standard raycast
+  // Raycast
   const rect = renderer.domElement.getBoundingClientRect();
   const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -2195,19 +2199,15 @@ function deleteDimensionAtMouse(event) {
 
   const hits = raycaster.intersectObjects(dimMeshes, true);
   if (hits.length > 0) {
-    // The first hit is the dimension cylinder or bar or text sprite
     const hitObj = hits[0].object;
-    // find the group
     const parentGroup = findDimensionGroup(hitObj);
     if (!parentGroup) return;
 
-    // remove from scene
+    // remove from scene & from placedDimensions
     scene.remove(parentGroup);
-    // remove from placedDimensions3D
-    placedDimensions3D = placedDimensions3D.filter(g => g !== parentGroup);
+    disposeDimensionGroup(parentGroup);
 
-    // optionally also remove from placedDimensions if you want to remove the 2D representation
-    // you'd have to find which dimension's start/end matches this group if you stored that info in userData
+    placedDimensions = placedDimensions.filter(d => d.group !== parentGroup);
 
     // optionally revert to INACTIVE
     dimensionManager.state = DimensionState.INACTIVE;
@@ -2222,9 +2222,9 @@ function deleteDimensionAtMouse(event) {
 function findDimensionGroup(object) {
   let obj = object;
   while (obj.parent) {
-    if (placedDimensions3D.includes(obj)) {
-      return obj;
-    }
+    // now check if obj is the group for any dimension in placedDimensions
+    const found = placedDimensions.find(d => d.group === obj);
+    if (found) return obj;
     obj = obj.parent;
   }
   return null;
