@@ -2125,7 +2125,7 @@ function createTextSprite(message) {
 function positionTextSprite(sprite, p1, p2) {
   const mid = p1.clone().lerp(p2, 0.5);
   // Lift it slightly above the floor
-  mid.y += 0.25;
+  mid.y += 0.30;
   sprite.position.copy(mid);
 }
 
