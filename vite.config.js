@@ -1,3 +1,3 @@
-export default {
-  base: '/block-builder/',
-};
+// export default {
+//   base: '/block-builder/',
+// };
